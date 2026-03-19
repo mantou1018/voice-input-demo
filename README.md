@@ -12,7 +12,7 @@
 
 本机当前缺少 `node` / `npm` / `pnpm`，所以还不能直接安装依赖运行。
 
-安装 Node 18+ 后执行：
+安装 Node 18+ 后执行：1
 
 ```bash
 npm install
