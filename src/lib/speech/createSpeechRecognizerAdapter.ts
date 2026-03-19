@@ -61,10 +61,15 @@ function getSpeechRecognitionConstructor(): SpeechRecognitionConstructor | null 
 function mapNativeError(error: string): SpeechRecognizerError {
   switch (error) {
     case 'not-allowed':
-    case 'service-not-allowed':
       return {
         code: 'permission-denied',
-        message: '麦克风权限未开启，请允许浏览器访问麦克风后重试。',
+        message: '语音识别未被允许，请检查麦克风权限或切换到系统浏览器后重试。',
+        recoverable: true,
+      };
+    case 'service-not-allowed':
+      return {
+        code: 'unsupported',
+        message: '当前浏览器环境限制了语音识别服务，请改用系统浏览器打开。',
         recoverable: true,
       };
     case 'no-speech':

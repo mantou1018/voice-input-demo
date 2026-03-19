@@ -42,12 +42,24 @@ export interface ResumeCardField {
   value: string;
 }
 
+export interface ResumeExtractionItem {
+  id: string;
+  label: string;
+  value: string;
+  sourceText: string | null;
+}
+
 export interface ResumeInfoCard {
   title: string;
   fields: ResumeCardField[];
   ctaLabel: string;
   footnote: string;
   rawTranscript: string;
+}
+
+export interface ResumeAnalysis {
+  card: ResumeInfoCard;
+  extractionItems: ResumeExtractionItem[];
 }
 
 export interface RecognitionSnapshot {

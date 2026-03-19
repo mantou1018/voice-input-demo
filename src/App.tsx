@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { useVoiceSession } from './hooks/useVoiceSession';
+import type { ResumeExtractionItem } from './types/speech';
 import './styles.css';
 
 const JOB_DETAIL_IMAGE =
   'https://www.figma.com/api/mcp/asset/108b7e8f-dc49-49ce-9775-18b9719ae5e6';
+const INTRO_IMAGE =
+  'https://www.figma.com/api/mcp/asset/ccf3e57d-8d8d-4102-8e85-548052637098';
+const BACK_ICON_IMAGE =
+  'https://www.figma.com/api/mcp/asset/b87d8e3e-907a-496b-9bbe-0558ac305fe8';
 
 const PROMPT_ITEMS = [
   '1.你的姓名              2.年龄',
@@ -11,6 +16,27 @@ const PROMPT_ITEMS = [
 ];
 
 const EXAMPLE_SPEECH = '“我叫张三，25岁，希望去北京工作，应聘Java开发岗。”';
+
+function RecordingGuide() {
+  return (
+    <div className="recording-guide">
+      <p className="recording-guide__lead">为了帮你快速报名，你可以这样对我说：</p>
+      <div className="recording-guide__line">
+        <span>我今年</span>
+        <span className="recording-guide__blank recording-guide__blank--sm" />
+        <span>岁，希望去</span>
+        <span className="recording-guide__blank recording-guide__blank--sm" />
+        <span>城市，</span>
+      </div>
+      <div className="recording-guide__line">
+        <span>应聘</span>
+        <span className="recording-guide__blank recording-guide__blank--sm" />
+        <span>工作，我的手机号是</span>
+        <span className="recording-guide__blank recording-guide__blank--lg" />
+      </div>
+    </div>
+  );
+}
 
 function Waveform({ compact = false }: { compact?: boolean }) {
   const bars = compact ? 12 : 18;
@@ -28,10 +54,64 @@ function Waveform({ compact = false }: { compact?: boolean }) {
   );
 }
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function HighlightedTranscript({
+  activeExtractionIndex,
+  items,
+  transcript,
+}: {
+  activeExtractionIndex: number;
+  items: ResumeExtractionItem[];
+  transcript: string;
+}) {
+  const activeTokens = items
+    .slice(0, activeExtractionIndex + 1)
+    .map((item) => item.sourceText?.trim())
+    .filter((value): value is string => Boolean(value))
+    .sort((left, right) => right.length - left.length);
+
+  if (activeTokens.length === 0) {
+    return <>{transcript}</>;
+  }
+
+  const pattern = new RegExp(`(${activeTokens.map((token) => escapeRegExp(token)).join('|')})`, 'gu');
+  const parts = transcript.split(pattern);
+
+  return (
+    <>
+      {parts.map((part, index) => {
+        const isHighlight = activeTokens.some((token) => token === part);
+        return isHighlight ? (
+          <mark className="transcript-highlight" key={`${part}-${index}`}>
+            {part}
+          </mark>
+        ) : (
+          <span key={`${part}-${index}`}>{part}</span>
+        );
+      })}
+    </>
+  );
+}
+
 export default function App() {
-  const { card, elapsedSeconds, error, isSupported, phase, transcriptText, actions } =
+  const {
+    activeExtractionIndex,
+    analysis,
+    card,
+    elapsedSeconds,
+    error,
+    isSupported,
+    phase,
+    transcriptText,
+    visibleCardFieldCount,
+    actions,
+  } =
     useVoiceSession();
   const startYRef = useRef(0);
+  const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
   const cancelIntentRef = useRef(false);
   const [isPointerHolding, setIsPointerHolding] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -42,7 +122,14 @@ export default function App() {
     }
 
     const handleMove = (event: globalThis.PointerEvent) => {
-      const nextCancel = startYRef.current - event.clientY > 88;
+      const cancelRect = cancelButtonRef.current?.getBoundingClientRect();
+      const isOverCancelButton = cancelRect
+        ? event.clientX >= cancelRect.left - 10 &&
+          event.clientX <= cancelRect.right + 10 &&
+          event.clientY >= cancelRect.top - 12 &&
+          event.clientY <= cancelRect.bottom + 12
+        : false;
+      const nextCancel = isOverCancelButton || startYRef.current - event.clientY > 88;
       cancelIntentRef.current = nextCancel;
       setIsCancelling(nextCancel);
     };
@@ -75,7 +162,15 @@ export default function App() {
 
   const showDimmedOverlay = phase !== 'job';
   const bubbleHasText = transcriptText.length > 0;
-  const secondsLabel = `${Math.max(elapsedSeconds || 0, 12)}''`;
+  const currentBackgroundImage = phase === 'intro' ? INTRO_IMAGE : JOB_DETAIL_IMAGE;
+  const isAnalysisPhase =
+    phase === 'transcriptComplete' ||
+    phase === 'extracting' ||
+    phase === 'cardBuilding';
+  const visibleFields =
+    phase === 'review'
+      ? card?.fields ?? []
+      : card?.fields.slice(0, visibleCardFieldCount) ?? [];
 
   return (
     <div className="voice-page">
@@ -83,7 +178,7 @@ export default function App() {
         <img
           alt="职位详情"
           className="job-image"
-          src={JOB_DETAIL_IMAGE}
+          src={currentBackgroundImage}
         />
 
         {phase === 'job' ? (
@@ -99,39 +194,33 @@ export default function App() {
             >
               免费报名
             </button>
+            <span aria-hidden="true" className="job-footer__home-indicator" />
           </section>
         ) : null}
 
-        {showDimmedOverlay ? <div className="dimmed-layer" /> : null}
+        {showDimmedOverlay ? (
+          <div className={`dimmed-layer ${phase === 'intro' ? 'dimmed-layer--intro' : ''}`} />
+        ) : null}
 
         {showDimmedOverlay ? (
           <button
-            aria-label="关闭"
-            className="close-hitbox"
+            aria-label="返回"
+            className="back-button"
             onClick={actions.closeOverlay}
             type="button"
-          />
+          >
+            <img alt="" aria-hidden="true" className="back-button__icon" src={BACK_ICON_IMAGE} />
+          </button>
         ) : null}
 
         {phase === 'intro' ? (
           <section className="intro-overlay">
-            <div className="intro-copy">
-              <p className="intro-copy__lead">为了帮你快速报名，请你告诉我以下信息：</p>
-              <div className="intro-copy__list">
-                {PROMPT_ITEMS.map((line) => (
-                  <p key={line}>{line}</p>
-                ))}
-              </div>
-              <div className="intro-copy__example">
-                <p>你可以这样对我说：</p>
-                <p>{EXAMPLE_SPEECH}</p>
-              </div>
-            </div>
+            <RecordingGuide />
 
             <div className="intro-actions">
               <button
                 aria-label="按住说话"
-                className="hold-button"
+                className="hold-button hold-button--intro"
                 disabled={!isSupported}
                 onPointerDown={beginHold}
                 type="button"
@@ -143,12 +232,17 @@ export default function App() {
                 <p className="overlay-error">当前手机浏览器不支持语音识别。</p>
               ) : null}
             </div>
+            <span aria-hidden="true" className="intro-home-indicator" />
           </section>
         ) : null}
 
         {phase === 'recording' ? (
           <section className="recording-overlay">
-            <div className={`speech-bubble ${isCancelling ? 'speech-bubble--cancel' : ''}`}>
+            <RecordingGuide />
+
+            <div
+              className={`speech-bubble ${bubbleHasText ? 'speech-bubble--with-text' : ''} ${isCancelling ? 'speech-bubble--cancel' : ''}`}
+            >
               {bubbleHasText ? (
                 <>
                   <p className="speech-bubble__text">{transcriptText}</p>
@@ -157,23 +251,72 @@ export default function App() {
               ) : (
                 <Waveform />
               )}
-              <span className="speech-bubble__tail" />
+              <span aria-hidden="true" className="speech-bubble__tail" />
             </div>
 
             <button
               aria-label="取消录音"
+              ref={cancelButtonRef}
               className={`cancel-button ${isCancelling ? 'cancel-button--active' : ''}`}
               onClick={() => actions.finishHoldToTalk(true)}
               type="button"
             >
-              ×
+              取消
             </button>
 
-            <div className="record-bottom-sheet">
-              <p>
-                松手发送，上滑取消 <span>{secondsLabel}</span>
+            <div className={`record-bottom-sheet ${isCancelling ? 'record-bottom-sheet--cancel' : ''}`}>
+              <p className={isCancelling ? 'record-bottom-sheet__label record-bottom-sheet__label--cancel' : 'record-bottom-sheet__label'}>
+                松手发送
               </p>
             </div>
+          </section>
+        ) : null}
+
+        {isAnalysisPhase && analysis && card ? (
+          <section className="analysis-overlay">
+            <div className="analysis-transcript">
+              <p className="analysis-transcript__label">
+                {phase === 'extracting' ? '正在识别关键信息...' : '已完成语音转写'}
+              </p>
+              <p className="analysis-transcript__text">
+                <HighlightedTranscript
+                  activeExtractionIndex={activeExtractionIndex}
+                  items={analysis.extractionItems}
+                  transcript={card.rawTranscript}
+                />
+              </p>
+            </div>
+
+            {phase === 'extracting' ? (
+              <div className="analysis-chip-list">
+                {analysis.extractionItems.map((item, index) => (
+                  <span
+                    className={`analysis-chip ${index <= activeExtractionIndex ? 'analysis-chip--active' : ''}`}
+                    key={item.id}
+                  >
+                    {item.label}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+
+            {phase === 'cardBuilding' && visibleFields.length > 0 ? (
+              <div className="analysis-card-shell">
+                <p className="analysis-card-shell__title">已为你整理出报名信息</p>
+                <div className="review-card">
+                  <p className="review-card__title">{card.title}</p>
+
+                  <div className="review-card__fields">
+                    {visibleFields.map((field) => (
+                      <div className="review-card__row" key={field.label}>
+                        <span>{field.label}</span>
+                        <strong>{field.value}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </section>
         ) : null}
 
@@ -194,7 +337,6 @@ export default function App() {
               <button className="review-card__cta" onClick={actions.submitCard} type="button">
                 {card.ctaLabel}
               </button>
-
               <p className="review-card__footnote">{card.footnote}</p>
             </div>
           </section>

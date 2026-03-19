@@ -2,13 +2,22 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createSpeechRecognizerAdapter } from '../lib/speech/createSpeechRecognizerAdapter';
 import type {
   RecordingSessionState,
+  ResumeAnalysis,
+  ResumeExtractionItem,
   ResumeInfoCard,
   SpeechRecognizerError,
   TranscriptChunk,
 } from '../types/speech';
-import { buildResumeInfoCard } from '../utils/resumeCard';
+import { buildResumeAnalysis } from '../utils/resumeCard';
 
-export type VoiceApplyPhase = 'job' | 'intro' | 'recording' | 'review';
+export type VoiceApplyPhase =
+  | 'job'
+  | 'intro'
+  | 'recording'
+  | 'transcriptComplete'
+  | 'extracting'
+  | 'cardBuilding'
+  | 'review';
 
 function composeTranscript(chunks: TranscriptChunk[], interimText: string) {
   return [...chunks.map((chunk) => chunk.text), interimText].filter(Boolean).join(' ').trim();
@@ -36,20 +45,36 @@ export function useVoiceSession() {
   const finalizeOnStopRef = useRef(false);
   const pendingStartTokenRef = useRef(0);
   const releasedBeforeStartRef = useRef(false);
+  const microphoneGrantedRef = useRef(false);
   const transcriptChunksRef = useRef<TranscriptChunk[]>([]);
   const interimTextRef = useRef('');
   const startTimeRef = useRef<number | null>(null);
+  const pendingTimeoutsRef = useRef<number[]>([]);
+  const analysisRef = useRef<ResumeAnalysis | null>(null);
 
   const [phase, setPhase] = useState<VoiceApplyPhase>('job');
   const [recordingState, setRecordingState] = useState<RecordingSessionState>('idle');
   const [transcriptChunks, setTranscriptChunks] = useState<TranscriptChunk[]>([]);
   const [interimText, setInterimText] = useState('');
   const [card, setCard] = useState<ResumeInfoCard | null>(null);
+  const [analysis, setAnalysis] = useState<ResumeAnalysis | null>(null);
   const [error, setError] = useState<SpeechRecognizerError | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [activeExtractionIndex, setActiveExtractionIndex] = useState(-1);
+  const [visibleCardFieldCount, setVisibleCardFieldCount] = useState(0);
 
   const isSupported = useMemo(() => adapterRef.current.isSupported(), []);
   const transcriptText = composeTranscript(transcriptChunks, interimText);
+
+  useEffect(() => {
+    analysisRef.current = analysis;
+  }, [analysis]);
+
+  useEffect(() => {
+    return () => {
+      clearPendingTransitions();
+    };
+  }, []);
 
   useEffect(() => {
     transcriptChunksRef.current = transcriptChunks;
@@ -92,7 +117,17 @@ export function useVoiceSession() {
         return;
       }
 
-      setError(nextError);
+      const resolvedError =
+        nextError.code === 'permission-denied' && microphoneGrantedRef.current
+          ? {
+              code: 'unsupported' as const,
+              message:
+                '麦克风权限已经开启，但当前手机浏览器/内嵌环境不支持语音识别。请改用系统浏览器打开。',
+              recoverable: true,
+            }
+          : nextError;
+
+      setError(resolvedError);
       setRecordingState('error');
       setPhase('intro');
     });
@@ -119,11 +154,16 @@ export function useVoiceSession() {
   }, []);
 
   async function ensureMicrophoneAccess() {
+    if (microphoneGrantedRef.current) {
+      return;
+    }
+
     if (!navigator.mediaDevices?.getUserMedia) {
       return;
     }
 
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    microphoneGrantedRef.current = true;
     stream.getTracks().forEach((track) => track.stop());
   }
 
@@ -134,10 +174,29 @@ export function useVoiceSession() {
     setInterimText('');
   }
 
+  function clearPendingTransitions() {
+    pendingTimeoutsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
+    pendingTimeoutsRef.current = [];
+  }
+
+  function scheduleTransition(delayMs: number, callback: () => void) {
+    const timeoutId = window.setTimeout(callback, delayMs);
+    pendingTimeoutsRef.current.push(timeoutId);
+  }
+
+  function resetAnalysisState() {
+    clearPendingTransitions();
+    analysisRef.current = null;
+    setAnalysis(null);
+    setActiveExtractionIndex(-1);
+    setVisibleCardFieldCount(0);
+  }
+
   function openApply() {
     setError(null);
     setCard(null);
     resetTranscript();
+    resetAnalysisState();
     setPhase('intro');
     setRecordingState('idle');
   }
@@ -148,6 +207,7 @@ export function useVoiceSession() {
     adapterRef.current.abort();
     resetTranscript();
     setCard(null);
+    resetAnalysisState();
     setError(null);
     setPhase('job');
     setRecordingState('idle');
@@ -166,6 +226,7 @@ export function useVoiceSession() {
     finalizeOnStopRef.current = false;
     resetTranscript();
     setCard(null);
+    resetAnalysisState();
     setError(null);
     setRecordingState('requestingPermission');
 
@@ -189,7 +250,7 @@ export function useVoiceSession() {
         message:
           permissionError instanceof Error
             ? permissionError.message
-            : '麦克风权限申请失败，请检查手机浏览器设置。',
+            : '麦克风权限申请失败，请检查手机浏览器设置，并确认是在系统浏览器中打开。',
         recoverable: true,
       });
       setRecordingState('error');
@@ -202,6 +263,7 @@ export function useVoiceSession() {
     finalizeOnStopRef.current = false;
     adapterRef.current.abort();
     resetTranscript();
+    resetAnalysisState();
     setRecordingState('idle');
     setPhase('intro');
   }
@@ -242,9 +304,45 @@ export function useVoiceSession() {
       return;
     }
 
-    setCard(buildResumeInfoCard(transcript));
-    setRecordingState('result');
-    setPhase('review');
+    const nextAnalysis = buildResumeAnalysis(transcript);
+    analysisRef.current = nextAnalysis;
+    setAnalysis(nextAnalysis);
+    setCard(nextAnalysis.card);
+    setRecordingState('summarizing');
+    setPhase('transcriptComplete');
+    setActiveExtractionIndex(-1);
+    setVisibleCardFieldCount(0);
+    clearPendingTransitions();
+
+    const extractionItems = nextAnalysis.extractionItems.filter(
+      (item) => item.sourceText || item.value,
+    );
+
+    scheduleTransition(800, () => {
+      setPhase('extracting');
+      extractionItems.forEach((_: ResumeExtractionItem, index: number) => {
+        scheduleTransition(index * 360, () => {
+          setActiveExtractionIndex(index);
+        });
+      });
+
+      const extractionDuration = Math.max(extractionItems.length, 1) * 360;
+
+      scheduleTransition(extractionDuration + 240, () => {
+        setPhase('cardBuilding');
+        nextAnalysis.card.fields.forEach((_, index) => {
+          scheduleTransition(index * 120, () => {
+            setVisibleCardFieldCount(index + 1);
+          });
+        });
+
+        scheduleTransition(nextAnalysis.card.fields.length * 120 + 260, () => {
+          setVisibleCardFieldCount(nextAnalysis.card.fields.length);
+          setRecordingState('result');
+          setPhase('review');
+        });
+      });
+    });
   }
 
   function submitCard() {
@@ -261,6 +359,9 @@ export function useVoiceSession() {
     phase,
     recordingState,
     transcriptText,
+    analysis,
+    activeExtractionIndex,
+    visibleCardFieldCount,
     actions: {
       closeOverlay,
       finishHoldToTalk,
