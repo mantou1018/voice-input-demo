@@ -37,6 +37,8 @@ function createEmptyTranscriptError(): SpeechRecognizerError {
   };
 }
 
+const STOP_GRACE_PERIOD_MS = 380;
+
 export function useVoiceSession() {
   const adapterRef = useRef(createSpeechRecognizerAdapter());
   const ignoreAbortErrorRef = useRef(false);
@@ -50,6 +52,7 @@ export function useVoiceSession() {
   const pendingTimeoutsRef = useRef<number[]>([]);
   const analysisRef = useRef<ResumeAnalysis | null>(null);
   const successToastTimeoutRef = useRef<number | null>(null);
+  const stopGraceTimeoutRef = useRef<number | null>(null);
 
   const [phase, setPhase] = useState<VoiceApplyPhase>('job');
   const [recordingState, setRecordingState] = useState<RecordingSessionState>('idle');
@@ -73,6 +76,7 @@ export function useVoiceSession() {
   useEffect(() => {
     return () => {
       clearPendingTransitions();
+      clearStopGraceTimeout();
       if (successToastTimeoutRef.current) {
         window.clearTimeout(successToastTimeoutRef.current);
       }
@@ -130,6 +134,8 @@ export function useVoiceSession() {
             }
           : nextError;
 
+      clearStopGraceTimeout();
+      finalizeOnStopRef.current = false;
       setError(resolvedError);
       setRecordingState('error');
       setPhase('intro');
@@ -182,6 +188,15 @@ export function useVoiceSession() {
     pendingTimeoutsRef.current = [];
   }
 
+  function clearStopGraceTimeout() {
+    if (!stopGraceTimeoutRef.current) {
+      return;
+    }
+
+    window.clearTimeout(stopGraceTimeoutRef.current);
+    stopGraceTimeoutRef.current = null;
+  }
+
   function scheduleTransition(delayMs: number, callback: () => void) {
     const timeoutId = window.setTimeout(callback, delayMs);
     pendingTimeoutsRef.current.push(timeoutId);
@@ -210,6 +225,7 @@ export function useVoiceSession() {
   function closeOverlay() {
     ignoreAbortErrorRef.current = true;
     finalizeOnStopRef.current = false;
+    clearStopGraceTimeout();
     adapterRef.current.abort();
     resetTranscript();
     setCard(null);
@@ -243,6 +259,7 @@ export function useVoiceSession() {
         pendingStartTokenRef.current !== startToken ||
         releasedBeforeStartRef.current
       ) {
+        clearStopGraceTimeout();
         setRecordingState('idle');
         setPhase('intro');
         return;
@@ -267,6 +284,7 @@ export function useVoiceSession() {
   function cancelHoldToTalk() {
     ignoreAbortErrorRef.current = true;
     finalizeOnStopRef.current = false;
+    clearStopGraceTimeout();
     adapterRef.current.abort();
     resetTranscript();
     resetAnalysisState();
@@ -294,7 +312,11 @@ export function useVoiceSession() {
 
     finalizeOnStopRef.current = true;
     setRecordingState('recognizing');
-    adapterRef.current.stop();
+    clearStopGraceTimeout();
+    stopGraceTimeoutRef.current = window.setTimeout(() => {
+      stopGraceTimeoutRef.current = null;
+      adapterRef.current.stop();
+    }, STOP_GRACE_PERIOD_MS);
   }
 
   function finalizeTranscript() {
@@ -320,7 +342,7 @@ export function useVoiceSession() {
     clearPendingTransitions();
 
     const extractionItems = nextAnalysis.extractionItems.filter(
-      (item) => item.sourceText || item.value,
+      (item) => item.detected && item.sourceText,
     );
 
     extractionItems.forEach((_: ResumeExtractionItem, index: number) => {
@@ -342,6 +364,7 @@ export function useVoiceSession() {
       window.clearTimeout(successToastTimeoutRef.current);
     }
 
+    clearStopGraceTimeout();
     setHasApplied(true);
     setShowSuccessToast(true);
     setPhase('job');

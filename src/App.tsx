@@ -68,6 +68,7 @@ function HighlightedTranscript({
   transcript: string;
 }) {
   const activeTokens = items
+    .filter((item) => item.detected)
     .slice(0, activeExtractionIndex + 1)
     .map((item) => item.sourceText?.trim())
     .filter((value): value is string => Boolean(value))
@@ -165,6 +166,7 @@ export default function App() {
   const bubbleHasText = transcriptText.length > 0;
   const currentBackgroundImage = phase === 'intro' ? INTRO_IMAGE : JOB_DETAIL_IMAGE;
   const isAnalysisPhase = phase === 'extracting';
+  let detectedChipIndex = -1;
 
   return (
     <div className="voice-page">
@@ -287,14 +289,19 @@ export default function App() {
             </div>
 
             <div className="analysis-chip-list">
-              {analysis.extractionItems.map((item, index) => (
-                <span
-                  className={`analysis-chip ${index <= activeExtractionIndex ? 'analysis-chip--active' : ''}`}
-                  key={item.id}
-                >
-                  {item.label}
-                </span>
-              ))}
+              {analysis.extractionItems.map((item) => {
+                const activeRank = item.detected ? ++detectedChipIndex : -1;
+                const isActive = item.detected && activeRank <= activeExtractionIndex;
+
+                return (
+                  <span
+                    className={`analysis-chip ${isActive ? 'analysis-chip--active' : ''}`}
+                    key={item.id}
+                  >
+                    {item.label}
+                  </span>
+                );
+              })}
             </div>
           </section>
         ) : null}

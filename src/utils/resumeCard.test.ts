@@ -57,4 +57,30 @@ describe('buildResumeInfoCard', () => {
     expect(analysis.extractionItems[2].value).toBe('骑手');
     expect(analysis.extractionItems[3].value).toBe('13800138000');
   });
+
+  it('extracts age from sparse fragments without the 岁 suffix', () => {
+    const analysis = buildResumeAnalysis('25 北京 保安');
+
+    expect(analysis.extractionItems[0].value).toBe('25');
+    expect(analysis.extractionItems[0].detected).toBe(true);
+    expect(analysis.card.fields[2].value).toContain('25岁');
+  });
+
+  it('keeps default fallback fields out of the detected extraction state', () => {
+    const analysis = buildResumeAnalysis('北京');
+
+    expect(analysis.extractionItems[1].detected).toBe(true);
+    expect(analysis.extractionItems[0].detected).toBe(false);
+    expect(analysis.extractionItems[2].detected).toBe(false);
+    expect(analysis.extractionItems[3].detected).toBe(false);
+  });
+
+  it('recognizes expanded city and position vocab such as 昆明 and 保姆', () => {
+    const analysis = buildResumeAnalysis('昆明 保姆');
+
+    expect(analysis.card.fields[3].value).toBe('昆明');
+    expect(analysis.card.fields[4].value).toBe('保姆');
+    expect(analysis.extractionItems[1].detected).toBe(true);
+    expect(analysis.extractionItems[2].detected).toBe(true);
+  });
 });

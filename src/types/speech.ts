@@ -47,6 +47,7 @@ export interface ResumeExtractionItem {
   label: string;
   value: string;
   sourceText: string | null;
+  detected: boolean;
 }
 
 export interface ResumeInfoCard {

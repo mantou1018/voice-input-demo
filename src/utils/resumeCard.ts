@@ -1,4 +1,5 @@
 import type { ResumeAnalysis, ResumeInfoCard } from '../types/speech';
+import { CITY_ALIASES, POSITION_KEYWORDS } from '../data/lookupTables';
 import { normalizeText } from './text';
 
 const DEFAULT_NAME = '张晓明';
@@ -6,93 +7,8 @@ const DEFAULT_PHONE = '13566372453';
 const DEFAULT_BIRTH_YEAR = '1987(37岁)';
 const DEFAULT_CITIES = '北京、上海';
 const DEFAULT_POSITION = '滴滴司机、卡车司机';
-
-const CITY_ALIASES = [
-  ['北京市', '北京'],
-  ['北京', '北京'],
-  ['上海市', '上海'],
-  ['上海', '上海'],
-  ['广州市', '广州'],
-  ['广州', '广州'],
-  ['深圳市', '深圳'],
-  ['深圳', '深圳'],
-  ['杭州市', '杭州'],
-  ['杭州', '杭州'],
-  ['苏州市', '苏州'],
-  ['苏州', '苏州'],
-  ['南京市', '南京'],
-  ['南京', '南京'],
-  ['天津市', '天津'],
-  ['天津', '天津'],
-  ['重庆市', '重庆'],
-  ['重庆', '重庆'],
-  ['成都市', '成都'],
-  ['成都', '成都'],
-  ['武汉市', '武汉'],
-  ['武汉', '武汉'],
-  ['西安市', '西安'],
-  ['西安', '西安'],
-  ['郑州市', '郑州'],
-  ['郑州', '郑州'],
-  ['长沙市', '长沙'],
-  ['长沙', '长沙'],
-  ['合肥市', '合肥'],
-  ['合肥', '合肥'],
-  ['青岛市', '青岛'],
-  ['青岛', '青岛'],
-  ['宁波市', '宁波'],
-  ['宁波', '宁波'],
-  ['无锡市', '无锡'],
-  ['无锡', '无锡'],
-  ['厦门市', '厦门'],
-  ['厦门', '厦门'],
-] as const;
-
-const POSITION_KEYWORDS = [
-  '滴滴司机',
-  '卡车司机',
-  '货运司机',
-  '网约车司机',
-  '叉车司机',
-  '保安',
-  '保洁',
-  '电工',
-  '焊工',
-  '普工',
-  '骑手',
-  '配送员',
-  '送餐员',
-  '快递员',
-  '分拣员',
-  '装卸工',
-  '搬运工',
-  '叉车工',
-  '操作工',
-  '质检员',
-  '仓管',
-  '仓库管理员',
-  '服务员',
-  '收银员',
-  '导购',
-  '客服',
-  '文员',
-  '前台',
-  '家政',
-  '月嫂',
-  '育儿嫂',
-  '护工',
-  '厨师',
-  '配菜',
-  '切配',
-  '洗碗工',
-  '木工',
-  '瓦工',
-  '钢筋工',
-  '油漆工',
-  '缝纫工',
-  '包装工',
-  '学徒',
-] as const;
+const MIN_SPARSE_AGE = 16;
+const MAX_SPARSE_AGE = 65;
 
 const FILLER_WORDS = /(?:我今年|我想|希望去|希望在|想去|想在|应聘|找工作|找|做|去|在|工作|岗位|职位|上班|手机号是|手机号|电话是|电话|联系号码|年龄|出生年份|今年|我的|想做)/gu;
 
@@ -113,10 +29,27 @@ function extractPhone(transcript: string) {
 }
 
 function extractAge(transcript: string) {
-  const match = transcript.match(/(\d{2})岁/u);
+  const explicitMatch = transcript.match(/(\d{2})岁/u);
+  if (explicitMatch) {
+    return {
+      value: Number(explicitMatch[1]),
+      sourceText: `${explicitMatch[1]}岁`,
+    };
+  }
+
+  const sparseMatch = transcript.match(/(?:^|[^\d])(\d{2})(?=[^\d]|$)/u);
+  const sparseAge = sparseMatch ? Number(sparseMatch[1]) : null;
+
+  if (sparseAge && sparseAge >= MIN_SPARSE_AGE && sparseAge <= MAX_SPARSE_AGE) {
+    return {
+      value: sparseAge,
+      sourceText: sparseMatch?.[1] ?? null,
+    };
+  }
+
   return {
-    value: match ? Number(match[1]) : null,
-    sourceText: match ? `${match[1]}岁` : null,
+    value: null,
+    sourceText: null,
   };
 }
 
@@ -281,10 +214,34 @@ export function buildResumeAnalysis(transcript: string): ResumeAnalysis {
   return {
     card,
     extractionItems: [
-      { id: 'age', label: '年龄', value: age.sourceText ?? buildBirthYear(age.value), sourceText: age.sourceText },
-      { id: 'city', label: '意向城市', value: cities.value, sourceText: cities.sourceText },
-      { id: 'position', label: '意向岗位', value: position.value, sourceText: position.sourceText },
-      { id: 'phone', label: '手机号', value: phone.value, sourceText: phone.sourceText },
+      {
+        id: 'age',
+        label: '年龄',
+        value: age.sourceText ?? buildBirthYear(age.value),
+        sourceText: age.sourceText,
+        detected: Boolean(age.sourceText),
+      },
+      {
+        id: 'city',
+        label: '意向城市',
+        value: cities.value,
+        sourceText: cities.sourceText,
+        detected: Boolean(cities.sourceText),
+      },
+      {
+        id: 'position',
+        label: '意向岗位',
+        value: position.value,
+        sourceText: position.sourceText,
+        detected: Boolean(position.sourceText),
+      },
+      {
+        id: 'phone',
+        label: '手机号',
+        value: phone.value,
+        sourceText: phone.sourceText,
+        detected: Boolean(phone.sourceText),
+      },
     ],
   };
 }
