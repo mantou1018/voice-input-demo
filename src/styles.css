@@ -65,6 +65,7 @@ button {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: top center;
 }
 
 .job-footer,
@@ -149,6 +150,32 @@ button {
   background: var(--pink);
 }
 
+.job-footer__apply--submitted {
+  opacity: 0.5;
+}
+
+.job-footer__apply:disabled {
+  cursor: default;
+}
+
+.success-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 126px;
+  z-index: 4;
+  transform: translateX(-50%);
+  min-width: 112px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(34, 34, 34, 0.88);
+  color: #ffffff;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+  animation: success-toast-fade 2.2s ease both;
+}
+
 .dimmed-layer {
   background: linear-gradient(180deg, rgba(25, 25, 30, 0.9), rgba(25, 25, 30, 0.96) 72%, #19191e);
 }
@@ -167,6 +194,24 @@ button {
   width: 24px;
   height: 24px;
   object-fit: contain;
+}
+
+@keyframes success-toast-fade {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px) scale(0.96);
+  }
+
+  12%,
+  78% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-6px) scale(0.98);
+  }
 }
 
 .intro-overlay {
@@ -500,53 +545,64 @@ button {
   position: absolute;
   inset: 0;
   z-index: 1;
-  padding: 152px 24px 36px;
+  padding: 242px 28px 36px;
   display: grid;
   align-content: start;
-  gap: 18px;
+  gap: 13px;
 }
 
 .analysis-transcript {
-  border-radius: 24px;
-  padding: 18px 18px 20px;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(14px);
+  width: min(100%, 359px);
+  min-height: 117px;
+  border-radius: 12px;
+  padding: 19px 18px 15px;
+  background: #45474d;
   color: #ffffff;
+  justify-self: center;
 }
 
 .analysis-transcript__label {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 18px;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .analysis-transcript__text {
-  margin: 10px 0 0;
+  margin: 11px 0 0;
   font-size: 20px;
   line-height: 30px;
   color: #ffffff;
+  min-height: 30px;
+  display: block;
+  text-align: left;
 }
 
 .transcript-highlight {
-  padding: 0 4px;
-  border-radius: 8px;
-  background: rgba(149, 236, 105, 0.92);
-  color: #222222;
+  padding: 0;
+  background: transparent;
+  color: #95ec69;
 }
 
 .analysis-chip-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
+  width: min(100%, 359px);
+  justify-self: center;
 }
 
 .analysis-chip {
-  padding: 7px 12px;
+  height: 29px;
+  padding: 0 12px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.72);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 13px;
+  font-weight: 500;
   line-height: 18px;
 }
 
@@ -555,32 +611,19 @@ button {
   color: #222222;
 }
 
-.analysis-card-shell {
-  margin-top: 4px;
-  display: grid;
-  gap: 10px;
-  transform: translateY(12px);
-  opacity: 0.86;
-  transition: transform 220ms ease, opacity 220ms ease;
-}
-
-.analysis-card-shell--ready {
-  transform: translateY(0);
-  opacity: 1;
-}
-
-.analysis-card-shell__title {
-  margin: 0;
-  font-size: 14px;
-  line-height: 20px;
-  color: rgba(255, 255, 255, 0.78);
-}
-
 .review-overlay {
   z-index: 1;
   display: grid;
   place-items: center;
   padding: 0 24px;
+}
+
+.review-overlay--resume {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  padding: 166px 0 0 70px;
 }
 
 .review-card {
@@ -591,10 +634,40 @@ button {
   color: var(--ink);
 }
 
+.review-card--resume {
+  padding: 14px 12px 16px;
+  border-radius: 10.8px;
+  transform-origin: center top;
+  will-change: transform, opacity;
+  animation: resume-card-pop 420ms cubic-bezier(0.2, 0.85, 0.24, 1) both;
+}
+
 .review-card__title {
   margin: 0;
   font-size: 17px;
   line-height: 24px;
+}
+
+.review-card__title--resume {
+  text-align: center;
+  font-weight: 500;
+}
+
+@keyframes resume-card-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.88);
+  }
+
+  60% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.02);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .review-card__fields {

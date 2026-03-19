@@ -32,4 +32,29 @@ describe('buildResumeInfoCard', () => {
     expect(analysis.extractionItems[2].sourceText).toContain('滴滴司机');
     expect(analysis.extractionItems[3].sourceText).toBe('13566372453');
   });
+
+  it('stops city extraction before the position phrase begins', () => {
+    const analysis = buildResumeAnalysis('希望去北京应聘保安工作，手机号是13566372453。');
+
+    expect(analysis.extractionItems[1].value).toBe('北京');
+    expect(analysis.card.fields[3].value).toBe('北京');
+  });
+
+  it('extracts age city and position from short fragment input', () => {
+    const analysis = buildResumeAnalysis('25岁 北京 保安');
+
+    expect(analysis.extractionItems[0].sourceText).toBe('25岁');
+    expect(analysis.extractionItems[1].value).toBe('北京');
+    expect(analysis.extractionItems[2].value).toBe('保安');
+    expect(analysis.card.fields[3].value).toBe('北京');
+    expect(analysis.card.fields[4].value).toBe('保安');
+  });
+
+  it('extracts sparse phone and position fragments without a full sentence', () => {
+    const analysis = buildResumeAnalysis('上海 骑手 13800138000');
+
+    expect(analysis.extractionItems[1].value).toBe('上海');
+    expect(analysis.extractionItems[2].value).toBe('骑手');
+    expect(analysis.extractionItems[3].value).toBe('13800138000');
+  });
 });

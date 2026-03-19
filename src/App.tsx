@@ -103,10 +103,11 @@ export default function App() {
     card,
     elapsedSeconds,
     error,
+    hasApplied,
     isSupported,
     phase,
+    showSuccessToast,
     transcriptText,
-    visibleCardFieldCount,
     actions,
   } =
     useVoiceSession();
@@ -163,14 +164,7 @@ export default function App() {
   const showDimmedOverlay = phase !== 'job';
   const bubbleHasText = transcriptText.length > 0;
   const currentBackgroundImage = phase === 'intro' ? INTRO_IMAGE : JOB_DETAIL_IMAGE;
-  const isAnalysisPhase =
-    phase === 'transcriptComplete' ||
-    phase === 'extracting' ||
-    phase === 'cardBuilding';
-  const visibleFields =
-    phase === 'review'
-      ? card?.fields ?? []
-      : card?.fields.slice(0, visibleCardFieldCount) ?? [];
+  const isAnalysisPhase = phase === 'extracting';
 
   return (
     <div className="voice-page">
@@ -188,14 +182,21 @@ export default function App() {
             </button>
             <button
               aria-label="免费报名"
-              className="job-footer__apply"
+              className={`job-footer__apply ${hasApplied ? 'job-footer__apply--submitted' : ''}`}
+              disabled={hasApplied}
               onClick={actions.openApply}
               type="button"
             >
-              免费报名
+              {hasApplied ? '已报名' : '免费报名'}
             </button>
             <span aria-hidden="true" className="job-footer__home-indicator" />
           </section>
+        ) : null}
+
+        {phase === 'job' && showSuccessToast ? (
+          <div className="success-toast" role="status" aria-live="polite">
+            报名成功
+          </div>
         ) : null}
 
         {showDimmedOverlay ? (
@@ -275,9 +276,7 @@ export default function App() {
         {isAnalysisPhase && analysis && card ? (
           <section className="analysis-overlay">
             <div className="analysis-transcript">
-              <p className="analysis-transcript__label">
-                {phase === 'extracting' ? '正在识别关键信息...' : '已完成语音转写'}
-              </p>
+              <p className="analysis-transcript__label">正在识别关键信息...</p>
               <p className="analysis-transcript__text">
                 <HighlightedTranscript
                   activeExtractionIndex={activeExtractionIndex}
@@ -287,43 +286,23 @@ export default function App() {
               </p>
             </div>
 
-            {phase === 'extracting' ? (
-              <div className="analysis-chip-list">
-                {analysis.extractionItems.map((item, index) => (
-                  <span
-                    className={`analysis-chip ${index <= activeExtractionIndex ? 'analysis-chip--active' : ''}`}
-                    key={item.id}
-                  >
-                    {item.label}
-                  </span>
-                ))}
-              </div>
-            ) : null}
-
-            {phase === 'cardBuilding' && visibleFields.length > 0 ? (
-              <div className="analysis-card-shell">
-                <p className="analysis-card-shell__title">已为你整理出报名信息</p>
-                <div className="review-card">
-                  <p className="review-card__title">{card.title}</p>
-
-                  <div className="review-card__fields">
-                    {visibleFields.map((field) => (
-                      <div className="review-card__row" key={field.label}>
-                        <span>{field.label}</span>
-                        <strong>{field.value}</strong>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : null}
+            <div className="analysis-chip-list">
+              {analysis.extractionItems.map((item, index) => (
+                <span
+                  className={`analysis-chip ${index <= activeExtractionIndex ? 'analysis-chip--active' : ''}`}
+                  key={item.id}
+                >
+                  {item.label}
+                </span>
+              ))}
+            </div>
           </section>
         ) : null}
 
         {phase === 'review' && card ? (
-          <section className="review-overlay">
-            <div className="review-card">
-              <p className="review-card__title">{card.title}</p>
+          <section className="review-overlay review-overlay--resume">
+            <div className="review-card review-card--resume">
+              <p className="review-card__title review-card__title--resume">{card.title}</p>
 
               <div className="review-card__fields">
                 {card.fields.map((field) => (

@@ -14,9 +14,7 @@ export type VoiceApplyPhase =
   | 'job'
   | 'intro'
   | 'recording'
-  | 'transcriptComplete'
   | 'extracting'
-  | 'cardBuilding'
   | 'review';
 
 function composeTranscript(chunks: TranscriptChunk[], interimText: string) {
@@ -51,6 +49,7 @@ export function useVoiceSession() {
   const startTimeRef = useRef<number | null>(null);
   const pendingTimeoutsRef = useRef<number[]>([]);
   const analysisRef = useRef<ResumeAnalysis | null>(null);
+  const successToastTimeoutRef = useRef<number | null>(null);
 
   const [phase, setPhase] = useState<VoiceApplyPhase>('job');
   const [recordingState, setRecordingState] = useState<RecordingSessionState>('idle');
@@ -61,7 +60,8 @@ export function useVoiceSession() {
   const [error, setError] = useState<SpeechRecognizerError | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [activeExtractionIndex, setActiveExtractionIndex] = useState(-1);
-  const [visibleCardFieldCount, setVisibleCardFieldCount] = useState(0);
+  const [hasApplied, setHasApplied] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
 
   const isSupported = useMemo(() => adapterRef.current.isSupported(), []);
   const transcriptText = composeTranscript(transcriptChunks, interimText);
@@ -73,6 +73,9 @@ export function useVoiceSession() {
   useEffect(() => {
     return () => {
       clearPendingTransitions();
+      if (successToastTimeoutRef.current) {
+        window.clearTimeout(successToastTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -189,10 +192,13 @@ export function useVoiceSession() {
     analysisRef.current = null;
     setAnalysis(null);
     setActiveExtractionIndex(-1);
-    setVisibleCardFieldCount(0);
   }
 
   function openApply() {
+    if (hasApplied) {
+      return;
+    }
+
     setError(null);
     setCard(null);
     resetTranscript();
@@ -309,48 +315,48 @@ export function useVoiceSession() {
     setAnalysis(nextAnalysis);
     setCard(nextAnalysis.card);
     setRecordingState('summarizing');
-    setPhase('transcriptComplete');
+    setPhase('extracting');
     setActiveExtractionIndex(-1);
-    setVisibleCardFieldCount(0);
     clearPendingTransitions();
 
     const extractionItems = nextAnalysis.extractionItems.filter(
       (item) => item.sourceText || item.value,
     );
 
-    scheduleTransition(800, () => {
-      setPhase('extracting');
-      extractionItems.forEach((_: ResumeExtractionItem, index: number) => {
-        scheduleTransition(index * 360, () => {
-          setActiveExtractionIndex(index);
-        });
+    extractionItems.forEach((_: ResumeExtractionItem, index: number) => {
+      scheduleTransition(index * 360 + 120, () => {
+        setActiveExtractionIndex(index);
       });
+    });
 
-      const extractionDuration = Math.max(extractionItems.length, 1) * 360;
+    const extractionDuration = Math.max(extractionItems.length, 1) * 360;
 
-      scheduleTransition(extractionDuration + 240, () => {
-        setPhase('cardBuilding');
-        nextAnalysis.card.fields.forEach((_, index) => {
-          scheduleTransition(index * 120, () => {
-            setVisibleCardFieldCount(index + 1);
-          });
-        });
-
-        scheduleTransition(nextAnalysis.card.fields.length * 120 + 260, () => {
-          setVisibleCardFieldCount(nextAnalysis.card.fields.length);
-          setRecordingState('result');
-          setPhase('review');
-        });
-      });
+    scheduleTransition(extractionDuration + 420, () => {
+      setRecordingState('result');
+      setPhase('review');
     });
   }
 
   function submitCard() {
+    if (successToastTimeoutRef.current) {
+      window.clearTimeout(successToastTimeoutRef.current);
+    }
+
+    setHasApplied(true);
+    setShowSuccessToast(true);
     setPhase('job');
     setRecordingState('idle');
+    resetTranscript();
+    resetAnalysisState();
+
+    successToastTimeoutRef.current = window.setTimeout(() => {
+      setShowSuccessToast(false);
+      successToastTimeoutRef.current = null;
+    }, 2200);
   }
 
   return {
+    hasApplied,
     card,
     elapsedSeconds,
     error,
@@ -358,10 +364,10 @@ export function useVoiceSession() {
     isSupported,
     phase,
     recordingState,
+    showSuccessToast,
     transcriptText,
     analysis,
     activeExtractionIndex,
-    visibleCardFieldCount,
     actions: {
       closeOverlay,
       finishHoldToTalk,

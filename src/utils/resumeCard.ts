@@ -7,6 +7,95 @@ const DEFAULT_BIRTH_YEAR = '1987(37岁)';
 const DEFAULT_CITIES = '北京、上海';
 const DEFAULT_POSITION = '滴滴司机、卡车司机';
 
+const CITY_ALIASES = [
+  ['北京市', '北京'],
+  ['北京', '北京'],
+  ['上海市', '上海'],
+  ['上海', '上海'],
+  ['广州市', '广州'],
+  ['广州', '广州'],
+  ['深圳市', '深圳'],
+  ['深圳', '深圳'],
+  ['杭州市', '杭州'],
+  ['杭州', '杭州'],
+  ['苏州市', '苏州'],
+  ['苏州', '苏州'],
+  ['南京市', '南京'],
+  ['南京', '南京'],
+  ['天津市', '天津'],
+  ['天津', '天津'],
+  ['重庆市', '重庆'],
+  ['重庆', '重庆'],
+  ['成都市', '成都'],
+  ['成都', '成都'],
+  ['武汉市', '武汉'],
+  ['武汉', '武汉'],
+  ['西安市', '西安'],
+  ['西安', '西安'],
+  ['郑州市', '郑州'],
+  ['郑州', '郑州'],
+  ['长沙市', '长沙'],
+  ['长沙', '长沙'],
+  ['合肥市', '合肥'],
+  ['合肥', '合肥'],
+  ['青岛市', '青岛'],
+  ['青岛', '青岛'],
+  ['宁波市', '宁波'],
+  ['宁波', '宁波'],
+  ['无锡市', '无锡'],
+  ['无锡', '无锡'],
+  ['厦门市', '厦门'],
+  ['厦门', '厦门'],
+] as const;
+
+const POSITION_KEYWORDS = [
+  '滴滴司机',
+  '卡车司机',
+  '货运司机',
+  '网约车司机',
+  '叉车司机',
+  '保安',
+  '保洁',
+  '电工',
+  '焊工',
+  '普工',
+  '骑手',
+  '配送员',
+  '送餐员',
+  '快递员',
+  '分拣员',
+  '装卸工',
+  '搬运工',
+  '叉车工',
+  '操作工',
+  '质检员',
+  '仓管',
+  '仓库管理员',
+  '服务员',
+  '收银员',
+  '导购',
+  '客服',
+  '文员',
+  '前台',
+  '家政',
+  '月嫂',
+  '育儿嫂',
+  '护工',
+  '厨师',
+  '配菜',
+  '切配',
+  '洗碗工',
+  '木工',
+  '瓦工',
+  '钢筋工',
+  '油漆工',
+  '缝纫工',
+  '包装工',
+  '学徒',
+] as const;
+
+const FILLER_WORDS = /(?:我今年|我想|希望去|希望在|想去|想在|应聘|找工作|找|做|去|在|工作|岗位|职位|上班|手机号是|手机号|电话是|电话|联系号码|年龄|出生年份|今年|我的|想做)/gu;
+
 function extractName(transcript: string) {
   const match = transcript.match(/(?:我叫|我是|名字叫)([\u4e00-\u9fa5·]{2,6})/u);
   return {
@@ -50,22 +139,89 @@ function normalizeCitySegment(segment: string) {
     .replace(/^、|、$/gu, '');
 }
 
+function extractCitiesFromFragments(transcript: string) {
+  const matches = CITY_ALIASES
+    .filter(([alias]) => transcript.includes(alias))
+    .map(([, city]) => city);
+
+  const uniqueCities = [...new Set(matches)];
+
+  return {
+    value: uniqueCities.join('、'),
+    sourceText: uniqueCities.join('、') || null,
+  };
+}
+
 function extractCities(transcript: string) {
   const match = transcript.match(
-    /(?:想去|希望去|希望在|想在|去)(.+?)(?:工作|上班|找工作|发展)/u,
+    /(?:想去|希望去|希望在|想在|去)(.+?)(?:应聘|找工作|找|做|岗位|职位|工作|上班|发展)/u,
   );
 
-  if (!match?.[1]) {
+  if (match?.[1]) {
+    const cities = normalizeCitySegment(match[1]);
+    if (cities) {
+      return {
+        value: cities,
+        sourceText: match[1].trim() || null,
+      };
+    }
+  }
+
+  const fallbackCities = extractCitiesFromFragments(transcript);
+  if (fallbackCities.value) {
+    return fallbackCities;
+  }
+
+  return {
+    value: DEFAULT_CITIES,
+    sourceText: null,
+  };
+}
+
+function cleanPositionValue(input: string) {
+  return input
+    .replace(/[，。,；;！!]/gu, '')
+    .replace(/\s+/gu, '')
+    .replace(/的/gu, '')
+    .replace(/(岗位|职位|工作|岗)$/u, '');
+}
+
+function extractPositionFromFragments(transcript: string, cityValue: string) {
+  const keyword = [...POSITION_KEYWORDS]
+    .sort((left, right) => right.length - left.length)
+    .find((item) => transcript.includes(item));
+
+  if (keyword) {
     return {
-      value: DEFAULT_CITIES,
-      sourceText: null,
+      value: keyword,
+      sourceText: keyword,
     };
   }
 
-  const cities = normalizeCitySegment(match[1]);
+  const stripped = transcript
+    .replace(/1\d{10}/gu, ' ')
+    .replace(/\d{1,2}岁/gu, ' ')
+    .replace(FILLER_WORDS, ' ');
+
+  const candidate = stripped
+    .split(/[\s，。！？；,.!?;:：、]+/u)
+    .map((token) => token.trim())
+    .map((token) => cleanPositionValue(token))
+    .filter(Boolean)
+    .filter((token) => token !== cityValue)
+    .filter((token) => !CITY_ALIASES.some(([alias, city]) => token === alias || token === city))
+    .find((token) => token.length >= 2 && token.length <= 8);
+
+  if (candidate) {
+    return {
+      value: candidate,
+      sourceText: candidate,
+    };
+  }
+
   return {
-    value: cities || DEFAULT_CITIES,
-    sourceText: match[1].trim() || null,
+    value: DEFAULT_POSITION,
+    sourceText: null,
   };
 }
 
@@ -96,8 +252,7 @@ function extractPosition(transcript: string) {
   }
 
   return {
-    value: DEFAULT_POSITION,
-    sourceText: null,
+    ...extractPositionFromFragments(transcript, extractCities(transcript).value),
   };
 }
 
@@ -110,7 +265,7 @@ export function buildResumeAnalysis(transcript: string): ResumeAnalysis {
   const position = extractPosition(normalized);
 
   const card: ResumeInfoCard = {
-    title: '好的，已收到你的信息',
+    title: '已为您生成简历',
     fields: [
       { label: '姓名', value: name.value },
       { label: '手机号', value: phone.value },
