@@ -9,13 +9,49 @@ const INTRO_IMAGE =
   'https://www.figma.com/api/mcp/asset/ccf3e57d-8d8d-4102-8e85-548052637098';
 const BACK_ICON_IMAGE =
   'https://www.figma.com/api/mcp/asset/b87d8e3e-907a-496b-9bbe-0558ac305fe8';
+const INTRO_BLANK_IMAGE =
+  'https://www.figma.com/api/mcp/asset/8d6c4c7b-0df1-43a5-8d54-ffb803e06d7f';
+const INTRO_PHONE_LINE_IMAGE =
+  'https://www.figma.com/api/mcp/asset/9766ce5a-a3ee-4544-acb6-e5b60d26d8a8';
 
-const PROMPT_ITEMS = [
-  '1.你的姓名              2.年龄',
-  '3.期望工作的城市    4. 期望岗位',
-];
+function IntroGuide() {
+  return (
+    <div className="intro-guide">
+      <div className="intro-guide__copy">
+        <p className="intro-guide__eyebrow">为了帮你快速报名</p>
+        <p className="intro-guide__title">你可以这样对我说：</p>
+      </div>
 
-const EXAMPLE_SPEECH = '“我叫张三，25岁，希望去北京工作，应聘Java开发岗。”';
+      <div className="intro-guide__card">
+        <div className="intro-guide__row">
+          <span>我叫</span>
+          <img alt="" aria-hidden="true" className="intro-guide__blank-image intro-guide__blank-image--short" src={INTRO_BLANK_IMAGE} />
+          <span>，今年</span>
+          <img alt="" aria-hidden="true" className="intro-guide__blank-image intro-guide__blank-image--short" src={INTRO_BLANK_IMAGE} />
+          <span>岁</span>
+        </div>
+
+        <div className="intro-guide__row">
+          <span>希望去</span>
+          <img alt="" aria-hidden="true" className="intro-guide__blank-image intro-guide__blank-image--short" src={INTRO_BLANK_IMAGE} />
+          <span>市(县/区)，</span>
+          <div className="intro-guide__row-group">
+            <span>应聘</span>
+            <img alt="" aria-hidden="true" className="intro-guide__blank-image intro-guide__blank-image--short" src={INTRO_BLANK_IMAGE} />
+            <span>工作</span>
+          </div>
+        </div>
+
+        <div className="intro-guide__row intro-guide__row--full">
+          <span>我的手机号是</span>
+          <span className="intro-guide__phone-line-wrap">
+            <img alt="" aria-hidden="true" className="intro-guide__phone-line" src={INTRO_PHONE_LINE_IMAGE} />
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function RecordingGuide() {
   return (
@@ -218,7 +254,7 @@ export default function App() {
 
         {phase === 'intro' ? (
           <section className="intro-overlay">
-            <RecordingGuide />
+            <IntroGuide />
 
             <div className="intro-actions">
               <button
