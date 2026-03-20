@@ -5,14 +5,12 @@ import './styles.css';
 
 const JOB_DETAIL_IMAGE =
   'https://www.figma.com/api/mcp/asset/108b7e8f-dc49-49ce-9775-18b9719ae5e6';
-const INTRO_IMAGE =
-  'https://www.figma.com/api/mcp/asset/ccf3e57d-8d8d-4102-8e85-548052637098';
 const BACK_ICON_IMAGE =
   'https://www.figma.com/api/mcp/asset/b87d8e3e-907a-496b-9bbe-0558ac305fe8';
 const INTRO_BLANK_IMAGE =
-  'https://www.figma.com/api/mcp/asset/8d6c4c7b-0df1-43a5-8d54-ffb803e06d7f';
+  'https://www.figma.com/api/mcp/asset/473f1ec1-776d-416d-8a4b-bdcc90f00711';
 const INTRO_PHONE_LINE_IMAGE =
-  'https://www.figma.com/api/mcp/asset/9766ce5a-a3ee-4544-acb6-e5b60d26d8a8';
+  'https://www.figma.com/api/mcp/asset/e514439e-e201-4ab6-b424-a42c3e65e3f9';
 
 function IntroGuide() {
   return (
@@ -200,7 +198,7 @@ export default function App() {
 
   const showDimmedOverlay = phase !== 'job';
   const bubbleHasText = transcriptText.length > 0;
-  const currentBackgroundImage = phase === 'intro' ? INTRO_IMAGE : JOB_DETAIL_IMAGE;
+  const currentBackgroundImage = JOB_DETAIL_IMAGE;
   const isAnalysisPhase = phase === 'extracting';
   let detectedChipIndex = -1;
 
@@ -238,7 +236,13 @@ export default function App() {
         ) : null}
 
         {showDimmedOverlay ? (
-          <div className={`dimmed-layer ${phase === 'intro' ? 'dimmed-layer--intro' : ''}`} />
+          <div
+            className={`dimmed-layer ${
+              phase === 'intro'
+                ? 'dimmed-layer--intro'
+                : ''
+            }`}
+          />
         ) : null}
 
         {showDimmedOverlay ? (

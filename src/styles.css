@@ -177,16 +177,11 @@ button {
 }
 
 .dimmed-layer {
-  background: linear-gradient(180deg, rgba(25, 25, 30, 0.9), rgba(25, 25, 30, 0.96) 72%, #19191e);
+  background: rgba(0, 0, 0, 0.85);
 }
 
 .dimmed-layer--intro {
-  background: linear-gradient(
-    180deg,
-    rgba(25, 25, 30, 0.8),
-    rgba(25, 25, 30, 0.9) 57.487%,
-    #19191e 80.19%
-  );
+  background: rgba(0, 0, 0, 0.85);
 }
 
 .back-button__icon {
@@ -221,12 +216,12 @@ button {
 
 .intro-guide {
   position: absolute;
-  left: 0;
+  left: 50%;
   top: 80px;
-  width: 100%;
+  width: 351px;
   display: grid;
-  justify-items: center;
   gap: 11px;
+  transform: translateX(-50%);
 }
 
 .intro-guide__copy {
@@ -443,7 +438,6 @@ button {
 .speech-bubble--cancel {
   --bubble-fill: #ff4d43;
   color: #ffffff;
-  transform: none;
   opacity: 1;
 }
 
@@ -599,6 +593,19 @@ button {
 
 .record-bottom-sheet__label--cancel {
   color: #ffffff;
+}
+
+@keyframes wave {
+  0%,
+  100% {
+    transform: scaleY(0.55);
+    opacity: 0.55;
+  }
+
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
 }
 
 .analysis-overlay {
