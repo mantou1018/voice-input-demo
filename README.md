@@ -19,6 +19,20 @@ npm install
 npm run dev
 ```
 
+如果要在 iPhone 上直接打开本机页面，推荐这样用：
+
+```bash
+npm run dev:phone
+npm run phone:qr
+```
+
+说明：
+
+- `npm run dev:phone` 会让 Vite 监听局域网地址。
+- `npm run phone:qr` 会自动生成当前 Mac 局域网地址对应的二维码页面，输出文件在 `.tmp/phone-qr.html`。
+- iPhone 和电脑连接同一个 Wi‑Fi 后，直接扫屏幕上的二维码即可打开。
+- 也可以传具体路径，例如 `npm run phone:qr -- /foo`。
+
 ## 目录
 
 ```text

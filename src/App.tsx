@@ -54,19 +54,37 @@ function IntroGuide() {
 function RecordingGuide() {
   return (
     <div className="recording-guide">
-      <p className="recording-guide__lead">为了帮你快速报名，你可以这样对我说：</p>
-      <div className="recording-guide__line">
-        <span>我今年</span>
-        <span className="recording-guide__blank recording-guide__blank--sm" />
-        <span>岁，希望去</span>
-        <span className="recording-guide__blank recording-guide__blank--sm" />
-        <span>城市，</span>
+      <div className="recording-guide__copy">
+        <p className="recording-guide__eyebrow">为了帮你快速报名</p>
+        <p className="recording-guide__title">你可以这样对我说：</p>
       </div>
-      <div className="recording-guide__line">
-        <span>应聘</span>
-        <span className="recording-guide__blank recording-guide__blank--sm" />
-        <span>工作，我的手机号是</span>
-        <span className="recording-guide__blank recording-guide__blank--lg" />
+
+      <div className="recording-guide__card">
+        <div className="recording-guide__row">
+          <span>我叫</span>
+          <img alt="" aria-hidden="true" className="recording-guide__blank-image recording-guide__blank-image--short" src={INTRO_BLANK_IMAGE} />
+          <span>，今年</span>
+          <img alt="" aria-hidden="true" className="recording-guide__blank-image recording-guide__blank-image--short" src={INTRO_BLANK_IMAGE} />
+          <span>岁</span>
+        </div>
+
+        <div className="recording-guide__row">
+          <span>希望去</span>
+          <img alt="" aria-hidden="true" className="recording-guide__blank-image recording-guide__blank-image--short" src={INTRO_BLANK_IMAGE} />
+          <span>市(县/区)，</span>
+          <div className="recording-guide__row-group">
+            <span>应聘</span>
+            <img alt="" aria-hidden="true" className="recording-guide__blank-image recording-guide__blank-image--short" src={INTRO_BLANK_IMAGE} />
+            <span>工作</span>
+          </div>
+        </div>
+
+        <div className="recording-guide__row recording-guide__row--full">
+          <span>我的手机号是</span>
+          <span className="recording-guide__phone-line-wrap">
+            <img alt="" aria-hidden="true" className="recording-guide__phone-line" src={INTRO_PHONE_LINE_IMAGE} />
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -248,7 +266,7 @@ export default function App() {
         {showDimmedOverlay ? (
           <button
             aria-label="返回"
-            className="back-button"
+            className={`back-button ${phase === 'recording' ? 'back-button--recording' : ''}`}
             onClick={actions.closeOverlay}
             type="button"
           >
@@ -281,10 +299,18 @@ export default function App() {
 
         {phase === 'recording' ? (
           <section className="recording-overlay">
+            <button
+              aria-label="关闭"
+              className="recording-close-button"
+              onClick={actions.closeOverlay}
+              type="button"
+            >
+              ×
+            </button>
             <RecordingGuide />
 
             <div
-              className={`speech-bubble ${bubbleHasText ? 'speech-bubble--with-text' : ''} ${isCancelling ? 'speech-bubble--cancel' : ''}`}
+              className={`speech-bubble ${bubbleHasText ? 'speech-bubble--with-text' : 'speech-bubble--idle'} ${isCancelling ? 'speech-bubble--cancel' : ''}`}
             >
               {bubbleHasText ? (
                 <>
@@ -307,9 +333,19 @@ export default function App() {
               取消
             </button>
 
+            {!isCancelling ? (
+              <div className="record-bottom-hint">
+                <span>松手发送，上滑取消</span>
+                <span className="record-bottom-hint__seconds">
+                  {elapsedSeconds}
+                  <span className="record-bottom-hint__seconds-mark">”</span>
+                </span>
+              </div>
+            ) : null}
+
             <div className={`record-bottom-sheet ${isCancelling ? 'record-bottom-sheet--cancel' : ''}`}>
               <p className={isCancelling ? 'record-bottom-sheet__label record-bottom-sheet__label--cancel' : 'record-bottom-sheet__label'}>
-                松手发送
+                松开 发送
               </p>
             </div>
           </section>

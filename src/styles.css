@@ -91,6 +91,11 @@ button {
   justify-content: center;
 }
 
+.back-button--recording {
+  left: 32px;
+  top: 68px;
+}
+
 .job-footer {
   inset: auto 0 0;
   height: 98px;
@@ -267,6 +272,7 @@ button {
 
 .intro-guide__row--full {
   width: 100%;
+  align-items: flex-end;
 }
 
 .intro-guide__row-group {
@@ -293,6 +299,7 @@ button {
   min-width: 0;
   display: flex;
   align-items: flex-end;
+  height: 22px;
 }
 
 .intro-guide__phone-line {
@@ -300,7 +307,7 @@ button {
   width: 150px;
   height: 1px;
   object-fit: fill;
-  transform: translateY(11px);
+  transform: translateY(-2px);
 }
 
 .intro-actions {
@@ -367,52 +374,119 @@ button {
 
 .recording-guide {
   position: absolute;
-  left: 35px;
-  top: 88px;
-  right: 35px;
+  left: 31.5px;
+  top: 68px;
+  width: 351px;
   display: grid;
   gap: 11px;
   color: #ffffff;
 }
 
-.recording-guide__lead {
-  margin: 0;
-  font-size: 18px;
-  line-height: 26px;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.recording-guide__line {
+.recording-close-button {
+  position: absolute;
+  left: 32px;
+  top: 32px;
+  z-index: 4;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  color: #222222;
+  font-size: 28px;
+  font-weight: 300;
+  line-height: 24px;
   display: flex;
-  align-items: baseline;
-  gap: 4px;
-  flex-wrap: wrap;
-  margin: 0;
-  font-size: 20px;
-  line-height: 1.15;
-  color: #ffffff;
+  align-items: center;
+  justify-content: center;
 }
 
-.recording-guide__blank {
-  display: inline-block;
-  height: 20px;
-  border-bottom: 1.5px solid rgba(255, 255, 255, 0.96);
+.recording-guide__copy {
+  width: 344px;
+  display: grid;
+}
+
+.recording-guide__eyebrow {
+  margin: 0;
+  color: #c6c6c6;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 26px;
+}
+
+.recording-guide__title {
+  margin: 0;
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 34px;
+}
+
+.recording-guide__card {
+  width: 351px;
+  padding: 22px 27px 26px;
+  border-radius: 8px;
+  background: rgba(61, 62, 64, 0.8);
+  display: grid;
+  gap: 28px;
+}
+
+.recording-guide__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  color: #c6c6c6;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 22px;
+  white-space: nowrap;
+}
+
+.recording-guide__row--full {
+  width: 100%;
+  align-items: flex-end;
+}
+
+.recording-guide__row-group {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.recording-guide__blank-image {
+  display: block;
+  height: 23px;
+  object-fit: contain;
+  flex: 0 0 auto;
   transform: translateY(-1px);
 }
 
-.recording-guide__blank--sm {
-  width: 52px;
+.recording-guide__blank-image--short {
+  width: 41px;
 }
 
-.recording-guide__blank--lg {
-  width: 58px;
+.recording-guide__phone-line-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+  height: 22px;
+}
+
+.recording-guide__phone-line {
+  display: block;
+  width: 150px;
+  height: 1px;
+  object-fit: fill;
+  transform: translateY(-2px);
 }
 
 .speech-bubble {
   position: absolute;
   left: 28px;
   right: 28px;
-  top: calc(100% * 432 / 896);
+  top: 420px;
+  z-index: 3;
   min-height: 78px;
   padding: 27px 24px;
   border-radius: 28px;
@@ -425,6 +499,12 @@ button {
   gap: 18px;
   box-shadow: none;
   transition: transform 160ms ease, opacity 160ms ease;
+}
+
+.speech-bubble--idle {
+  top: 420px;
+  min-height: 78px;
+  padding: 27px 24px;
 }
 
 .speech-bubble--with-text {
@@ -526,17 +606,20 @@ button {
 .cancel-button {
   position: absolute;
   left: 50%;
-  top: calc(100% * 659 / 896);
-  width: 96px;
-  height: 52px;
+  top: 520px;
+  width: 206px;
+  height: 59px;
   z-index: 2;
   transform: translateX(-50%);
-  border-radius: 26px;
-  background: #434343;
-  color: #ffffff;
-  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 30px;
+  background: rgba(67, 67, 67, 0.88);
+  color: #dedede;
+  font-size: 18px;
   font-weight: 500;
-  line-height: 22px;
+  line-height: 25px;
   box-shadow: none;
   transition:
     width 140ms ease,
@@ -547,20 +630,40 @@ button {
 }
 
 .cancel-button--active {
-  width: 104px;
-  height: 56px;
-  top: calc(100% * 657 / 896);
+  width: 206px;
+  height: 59px;
+  top: 520px;
   background: #f4f4f4;
   color: #222222;
   transform: translateX(-50%);
+}
+
+.record-bottom-hint {
+  position: absolute;
+  left: 121px;
+  top: 789px;
+  z-index: 2;
+  width: 170px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #222222;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 22px;
+  white-space: nowrap;
+}
+
+.record-bottom-hint__seconds-mark {
+  font-size: 14px;
 }
 
 .record-bottom-sheet {
   position: absolute;
   left: -8%;
   right: -8%;
-  top: calc(100% * 754 / 896);
-  height: calc(100% * 143 / 896);
+  top: calc(100% * 747.44 / 896);
+  height: calc(100% * 150.56 / 896);
   z-index: 1;
   background:
     linear-gradient(180deg, rgba(64, 77, 142, 0.9) 0, rgba(64, 77, 142, 0.9) 4px, transparent 4px),
@@ -580,12 +683,12 @@ button {
 .record-bottom-sheet__label {
   position: relative;
   z-index: 1;
-  margin: 49px auto 0;
+  margin: 41px auto 0;
   width: fit-content;
   color: #222222;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 500;
-  line-height: 22px;
+  line-height: 34px;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
