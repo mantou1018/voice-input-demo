@@ -360,7 +360,6 @@ export default function App() {
               <button className="review-card__cta" onClick={actions.submitCard} type="button">
                 {card.ctaLabel}
               </button>
-              <p className="review-card__footnote">{card.footnote}</p>
             </div>
           </section>
         ) : null}
