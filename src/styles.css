@@ -714,23 +714,26 @@ button {
   position: absolute;
   inset: 0;
   z-index: 1;
-  display: block;
-  padding: 220px 0 0 70px;
+  display: grid;
+  place-items: start center;
+  padding: 218px 0 0;
 }
 
 .review-card {
-  width: 274px;
-  border-radius: 10px;
+  width: 324px;
+  min-height: 394px;
+  border-radius: 12px;
   background: #f5f7fa;
-  padding: 14px 16px 20px;
+  padding: 16px;
   color: var(--ink);
+  box-sizing: border-box;
 }
 
 .review-card--resume {
-  width: 274px;
-  min-height: 341px;
-  padding: 14px 16px 20px;
-  border-radius: 10px;
+  width: 324px;
+  min-height: 394px;
+  padding: 16px;
+  border-radius: 12px;
   transform-origin: center top;
   will-change: transform, opacity;
   animation: resume-card-pop 420ms cubic-bezier(0.2, 0.85, 0.24, 1) both;
@@ -765,27 +768,34 @@ button {
 }
 
 .review-card__fields {
-  width: 242px;
+  width: 292px;
   margin-top: 22px;
-  border-radius: 7.2px;
+  border-radius: 8px;
   background: #ffffff;
-  padding: 7.2px 0;
+  padding: 16px 0 24px;
+  box-sizing: border-box;
 }
 
 .review-card__row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14.4px 10.8px 7.2px;
-  font-size: 14.4px;
-  line-height: 19.8px;
+  padding: 0 12px;
+  min-height: 22px;
+  font-size: 16px;
+  line-height: 22px;
+}
+
+.review-card__row + .review-card__row {
+  margin-top: 24px;
 }
 
 .review-card__row span {
   flex: 0 0 auto;
   color: #222222;
   font-weight: 400;
+  white-space: nowrap;
 }
 
 .review-card__row strong {
@@ -793,17 +803,18 @@ button {
   text-align: right;
   font-weight: 500;
   color: #222222;
+  white-space: nowrap;
 }
 
 .review-card__cta {
-  width: 242px;
-  height: 41px;
-  margin-top: 12px;
-  border-radius: 28px;
+  width: 292px;
+  height: 48px;
+  margin-top: 24px;
+  border-radius: 8px;
   background: #3d65f5;
   color: #ffffff;
-  font-size: 12.93px;
-  line-height: 18.1px;
+  font-size: 15px;
+  line-height: 21px;
   font-weight: 500;
 }
 

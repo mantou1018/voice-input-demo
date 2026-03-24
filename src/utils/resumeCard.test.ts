@@ -91,4 +91,76 @@ describe('buildResumeInfoCard', () => {
     expect(analysis.card.fields[4].value).toBe('滴滴司机、卡车司机');
     expect(analysis.extractionItems[2].detected).toBe(false);
   });
+
+  it('recognizes common compound surnames after self-introduction triggers', () => {
+    const analysis = buildResumeAnalysis('我叫欧阳娜娜，想去昆明，应聘保姆，手机号是13800138000');
+
+    expect(analysis.card.fields[0].value).toBe('欧阳娜娜');
+    expect(analysis.card.fields[3].value).toBe('昆明');
+    expect(analysis.card.fields[4].value).toBe('保姆');
+  });
+
+  it('recognizes minority names with middle dots', () => {
+    const analysis = buildResumeAnalysis('我是阿沛·阿旺晋美，想去拉萨，做司机');
+
+    expect(analysis.card.fields[0].value).toBe('阿沛·阿旺晋美');
+    expect(analysis.card.fields[3].value).toBe('拉萨');
+    expect(analysis.card.fields[4].value).toBe('司机');
+  });
+
+  it('uses sparse sentence-start name candidates without polluting the position field', () => {
+    const analysis = buildResumeAnalysis('张晓明 北京 保安 13566372453');
+
+    expect(analysis.card.fields[0].value).toBe('张晓明');
+    expect(analysis.card.fields[3].value).toBe('北京');
+    expect(analysis.card.fields[4].value).toBe('保安');
+  });
+
+  it('filters profession words out of self-introduction name slots', () => {
+    const analysis = buildResumeAnalysis('我是保安，想去北京工作');
+
+    expect(analysis.card.fields[0].value).toBe('张晓明');
+    expect(analysis.card.fields[4].value).toBe('保安');
+  });
+
+  it('recognizes a name when the self-introduction runs into the next clause without punctuation', () => {
+    const analysis = buildResumeAnalysis('我叫张晓明想去北京应聘保安手机号是13566372453');
+
+    expect(analysis.card.fields[0].value).toBe('张晓明');
+    expect(analysis.card.fields[3].value).toBe('北京');
+    expect(analysis.card.fields[4].value).toBe('保安');
+  });
+
+  it('recognizes compound surnames without requiring punctuation after the name', () => {
+    const analysis = buildResumeAnalysis('姓名是欧阳娜娜想去昆明做保姆');
+
+    expect(analysis.card.fields[0].value).toBe('欧阳娜娜');
+    expect(analysis.card.fields[3].value).toBe('昆明');
+    expect(analysis.card.fields[4].value).toBe('保姆');
+  });
+
+  it('recognizes minority names with middle dots even when followed by another clause directly', () => {
+    const analysis = buildResumeAnalysis('我是阿沛·阿旺晋美想去拉萨做司机');
+
+    expect(analysis.card.fields[0].value).toBe('阿沛·阿旺晋美');
+    expect(analysis.card.fields[3].value).toBe('拉萨');
+    expect(analysis.card.fields[4].value).toBe('司机');
+  });
+
+  it('does not absorb an Arabic age suffix into the recognized name', () => {
+    const analysis = buildResumeAnalysis('我叫张晓明25岁想去北京做保安');
+
+    expect(analysis.card.fields[0].value).toBe('张晓明');
+    expect(analysis.nameSourceText).toBe('张晓明');
+    expect(analysis.card.fields[3].value).toBe('北京');
+    expect(analysis.card.fields[4].value).toBe('保安');
+  });
+
+  it('does not absorb a Chinese age suffix into the recognized name', () => {
+    const analysis = buildResumeAnalysis('我是张晓明二十五岁想去昆明做保姆');
+
+    expect(analysis.card.fields[0].value).toBe('张晓明');
+    expect(analysis.card.fields[3].value).toBe('昆明');
+    expect(analysis.card.fields[4].value).toBe('保姆');
+  });
 });

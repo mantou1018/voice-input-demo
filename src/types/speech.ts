@@ -61,6 +61,7 @@ export interface ResumeInfoCard {
 export interface ResumeAnalysis {
   card: ResumeInfoCard;
   extractionItems: ResumeExtractionItem[];
+  nameSourceText: string | null;
 }
 
 export interface RecognitionSnapshot {

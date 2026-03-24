@@ -74,17 +74,24 @@ function escapeRegExp(value: string) {
 function HighlightedTranscript({
   activeExtractionIndex,
   items,
+  nameSourceText,
   transcript,
 }: {
   activeExtractionIndex: number;
   items: ResumeExtractionItem[];
+  nameSourceText: string | null;
   transcript: string;
 }) {
-  const activeTokens = items
+  const activeTokens = [
+    ...(activeExtractionIndex >= 0 && nameSourceText ? [nameSourceText.trim()] : []),
+    ...items
     .filter((item) => item.detected)
     .slice(0, activeExtractionIndex + 1)
     .map((item) => item.sourceText?.trim())
-    .filter((value): value is string => Boolean(value))
+    .filter((value): value is string => Boolean(value)),
+  ]
+    .filter(Boolean)
+    .filter((token, index, tokens) => tokens.indexOf(token) === index)
     .sort((left, right) => right.length - left.length);
 
   if (activeTokens.length === 0) {
@@ -320,6 +327,7 @@ export default function App() {
                 <HighlightedTranscript
                   activeExtractionIndex={activeExtractionIndex}
                   items={analysis.extractionItems}
+                  nameSourceText={analysis.nameSourceText}
                   transcript={card.rawTranscript}
                 />
               </p>
