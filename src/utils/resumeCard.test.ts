@@ -83,4 +83,12 @@ describe('buildResumeInfoCard', () => {
     expect(analysis.extractionItems[1].detected).toBe(true);
     expect(analysis.extractionItems[2].detected).toBe(true);
   });
+
+  it('does not mistake the recognized name for the expected position', () => {
+    const analysis = buildResumeAnalysis('我叫张晓明，手机号是13566372453');
+
+    expect(analysis.card.fields[0].value).toBe('张晓明');
+    expect(analysis.card.fields[4].value).toBe('滴滴司机、卡车司机');
+    expect(analysis.extractionItems[2].detected).toBe(false);
+  });
 });

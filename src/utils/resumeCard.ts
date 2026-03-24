@@ -119,7 +119,12 @@ function cleanPositionValue(input: string) {
     .replace(/(岗位|职位|工作|岗)$/u, '');
 }
 
-function extractPositionFromFragments(transcript: string, cityValue: string) {
+function extractPositionFromFragments(
+  transcript: string,
+  cityValue: string,
+  nameValue: string,
+  nameSourceText: string | null,
+) {
   const keyword = [...POSITION_KEYWORDS]
     .sort((left, right) => right.length - left.length)
     .find((item) => transcript.includes(item));
@@ -134,6 +139,7 @@ function extractPositionFromFragments(transcript: string, cityValue: string) {
   const stripped = transcript
     .replace(/1\d{10}/gu, ' ')
     .replace(/\d{1,2}岁/gu, ' ')
+    .replace(/(?:我叫|我是|名字叫)[\u4e00-\u9fa5·]{2,6}/gu, ' ')
     .replace(FILLER_WORDS, ' ');
 
   const candidate = stripped
@@ -142,6 +148,8 @@ function extractPositionFromFragments(transcript: string, cityValue: string) {
     .map((token) => cleanPositionValue(token))
     .filter(Boolean)
     .filter((token) => token !== cityValue)
+    .filter((token) => token !== nameValue)
+    .filter((token) => token !== nameSourceText)
     .filter((token) => !CITY_ALIASES.some(([alias, city]) => token === alias || token === city))
     .find((token) => token.length >= 2 && token.length <= 8);
 
@@ -158,7 +166,10 @@ function extractPositionFromFragments(transcript: string, cityValue: string) {
   };
 }
 
-function extractPosition(transcript: string) {
+function extractPosition(
+  transcript: string,
+  options: { cityValue: string; nameValue: string; nameSourceText: string | null },
+) {
   const patterns = [
     /(?:应聘|想做|想找|找)(.+?)(?:岗位|职位|工作|岗)/u,
     /(?:做|从事)(.+?)(?:工作|岗位)/u,
@@ -185,7 +196,7 @@ function extractPosition(transcript: string) {
   }
 
   return {
-    ...extractPositionFromFragments(transcript, extractCities(transcript).value),
+    ...extractPositionFromFragments(transcript, options.cityValue, options.nameValue, options.nameSourceText),
   };
 }
 
@@ -195,7 +206,11 @@ export function buildResumeAnalysis(transcript: string): ResumeAnalysis {
   const phone = extractPhone(normalized);
   const age = extractAge(normalized);
   const cities = extractCities(normalized);
-  const position = extractPosition(normalized);
+  const position = extractPosition(normalized, {
+    cityValue: cities.value,
+    nameValue: name.value,
+    nameSourceText: name.sourceText,
+  });
 
   const card: ResumeInfoCard = {
     title: '已为您生成简历',

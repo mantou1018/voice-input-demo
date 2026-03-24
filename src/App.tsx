@@ -12,77 +12,38 @@ const INTRO_BLANK_IMAGE =
 const INTRO_PHONE_LINE_IMAGE =
   'https://www.figma.com/api/mcp/asset/e514439e-e201-4ab6-b424-a42c3e65e3f9';
 
-function IntroGuide() {
+function VoiceGuide({ mode }: { mode: 'intro' | 'recording' }) {
   return (
-    <div className="intro-guide">
-      <div className="intro-guide__copy">
-        <p className="intro-guide__eyebrow">为了帮你快速报名</p>
-        <p className="intro-guide__title">你可以这样对我说：</p>
+    <div className={`voice-guide voice-guide--${mode}`}>
+      <div className="voice-guide__copy">
+        <p className="voice-guide__eyebrow">为了帮你快速报名</p>
+        <p className="voice-guide__title">你可以这样对我说：</p>
       </div>
 
-      <div className="intro-guide__card">
-        <div className="intro-guide__row">
+      <div className="voice-guide__card">
+        <div className="voice-guide__row">
           <span>我叫</span>
-          <img alt="" aria-hidden="true" className="intro-guide__blank-image intro-guide__blank-image--short" src={INTRO_BLANK_IMAGE} />
+          <img alt="" aria-hidden="true" className="voice-guide__blank-image voice-guide__blank-image--short" src={INTRO_BLANK_IMAGE} />
           <span>，今年</span>
-          <img alt="" aria-hidden="true" className="intro-guide__blank-image intro-guide__blank-image--short" src={INTRO_BLANK_IMAGE} />
+          <img alt="" aria-hidden="true" className="voice-guide__blank-image voice-guide__blank-image--short" src={INTRO_BLANK_IMAGE} />
           <span>岁</span>
         </div>
 
-        <div className="intro-guide__row">
+        <div className="voice-guide__row">
           <span>希望去</span>
-          <img alt="" aria-hidden="true" className="intro-guide__blank-image intro-guide__blank-image--short" src={INTRO_BLANK_IMAGE} />
+          <img alt="" aria-hidden="true" className="voice-guide__blank-image voice-guide__blank-image--short" src={INTRO_BLANK_IMAGE} />
           <span>市(县/区)，</span>
-          <div className="intro-guide__row-group">
+          <div className="voice-guide__row-group">
             <span>应聘</span>
-            <img alt="" aria-hidden="true" className="intro-guide__blank-image intro-guide__blank-image--short" src={INTRO_BLANK_IMAGE} />
+            <img alt="" aria-hidden="true" className="voice-guide__blank-image voice-guide__blank-image--short" src={INTRO_BLANK_IMAGE} />
             <span>工作</span>
           </div>
         </div>
 
-        <div className="intro-guide__row intro-guide__row--full">
+        <div className="voice-guide__row voice-guide__row--full">
           <span>我的手机号是</span>
-          <span className="intro-guide__phone-line-wrap">
-            <img alt="" aria-hidden="true" className="intro-guide__phone-line" src={INTRO_PHONE_LINE_IMAGE} />
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function RecordingGuide() {
-  return (
-    <div className="recording-guide">
-      <div className="recording-guide__copy">
-        <p className="recording-guide__eyebrow">为了帮你快速报名</p>
-        <p className="recording-guide__title">你可以这样对我说：</p>
-      </div>
-
-      <div className="recording-guide__card">
-        <div className="recording-guide__row">
-          <span>我叫</span>
-          <img alt="" aria-hidden="true" className="recording-guide__blank-image recording-guide__blank-image--short" src={INTRO_BLANK_IMAGE} />
-          <span>，今年</span>
-          <img alt="" aria-hidden="true" className="recording-guide__blank-image recording-guide__blank-image--short" src={INTRO_BLANK_IMAGE} />
-          <span>岁</span>
-        </div>
-
-        <div className="recording-guide__row">
-          <span>希望去</span>
-          <img alt="" aria-hidden="true" className="recording-guide__blank-image recording-guide__blank-image--short" src={INTRO_BLANK_IMAGE} />
-          <span>市(县/区)，</span>
-          <div className="recording-guide__row-group">
-            <span>应聘</span>
-            <img alt="" aria-hidden="true" className="recording-guide__blank-image recording-guide__blank-image--short" src={INTRO_BLANK_IMAGE} />
-            <span>工作</span>
-          </div>
-        </div>
-
-        <div className="recording-guide__row recording-guide__row--full">
-          <span>我的手机号是</span>
-          <span className="recording-guide__phone-line-wrap">
-            <img alt="" aria-hidden="true" className="recording-guide__phone-line" src={INTRO_PHONE_LINE_IMAGE} />
+          <span className="voice-guide__phone-line-wrap">
+            <img alt="" aria-hidden="true" className="voice-guide__phone-line" src={INTRO_PHONE_LINE_IMAGE} />
           </span>
         </div>
       </div>
@@ -266,7 +227,7 @@ export default function App() {
         {showDimmedOverlay ? (
           <button
             aria-label="返回"
-            className={`back-button ${phase === 'recording' ? 'back-button--recording' : ''}`}
+            className="back-button"
             onClick={actions.closeOverlay}
             type="button"
           >
@@ -276,7 +237,7 @@ export default function App() {
 
         {phase === 'intro' ? (
           <section className="intro-overlay">
-            <IntroGuide />
+            <VoiceGuide mode="intro" />
 
             <div className="intro-actions">
               <button
@@ -307,7 +268,7 @@ export default function App() {
             >
               ×
             </button>
-            <RecordingGuide />
+            <VoiceGuide mode="recording" />
 
             <div
               className={`speech-bubble ${bubbleHasText ? 'speech-bubble--with-text' : 'speech-bubble--idle'} ${isCancelling ? 'speech-bubble--cancel' : ''}`}

@@ -91,11 +91,6 @@ button {
   justify-content: center;
 }
 
-.back-button--recording {
-  left: 32px;
-  top: 68px;
-}
-
 .job-footer {
   inset: auto 0 0;
   height: 98px;
@@ -219,22 +214,30 @@ button {
   color: #ffffff;
 }
 
-.intro-guide {
+.voice-guide {
   position: absolute;
   left: 50%;
   top: 80px;
   width: 351px;
+  z-index: 4;
   display: grid;
   gap: 11px;
   transform: translateX(-50%);
 }
 
-.intro-guide__copy {
+.voice-guide--intro {
+}
+
+.voice-guide--recording {
+  color: #ffffff;
+}
+
+.voice-guide__copy {
   width: 344px;
   display: grid;
 }
 
-.intro-guide__eyebrow {
+.voice-guide__eyebrow {
   margin: 0;
   color: #c6c6c6;
   font-size: 18px;
@@ -242,7 +245,7 @@ button {
   line-height: 26px;
 }
 
-.intro-guide__title {
+.voice-guide__title {
   margin: 0;
   color: #ffffff;
   font-size: 24px;
@@ -250,7 +253,7 @@ button {
   line-height: 34px;
 }
 
-.intro-guide__card {
+.voice-guide__card {
   width: 351px;
   padding: 22px 27px 26px;
   border-radius: 8px;
@@ -259,7 +262,7 @@ button {
   gap: 28px;
 }
 
-.intro-guide__row {
+.voice-guide__row {
   display: flex;
   align-items: flex-start;
   gap: 4px;
@@ -270,19 +273,19 @@ button {
   white-space: nowrap;
 }
 
-.intro-guide__row--full {
+.voice-guide__row--full {
   width: 100%;
   align-items: flex-end;
 }
 
-.intro-guide__row-group {
+.voice-guide__row-group {
   display: inline-flex;
   align-items: flex-start;
   gap: 4px;
   white-space: nowrap;
 }
 
-.intro-guide__blank-image {
+.voice-guide__blank-image {
   display: block;
   height: 23px;
   object-fit: contain;
@@ -290,11 +293,11 @@ button {
   transform: translateY(-1px);
 }
 
-.intro-guide__blank-image--short {
+.voice-guide__blank-image--short {
   width: 41px;
 }
 
-.intro-guide__phone-line-wrap {
+.voice-guide__phone-line-wrap {
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
@@ -302,7 +305,7 @@ button {
   height: 22px;
 }
 
-.intro-guide__phone-line {
+.voice-guide__phone-line {
   display: block;
   width: 150px;
   height: 1px;
@@ -372,16 +375,6 @@ button {
   z-index: 1;
 }
 
-.recording-guide {
-  position: absolute;
-  left: 31.5px;
-  top: 68px;
-  width: 351px;
-  display: grid;
-  gap: 11px;
-  color: #ffffff;
-}
-
 .recording-close-button {
   position: absolute;
   left: 32px;
@@ -400,91 +393,10 @@ button {
   justify-content: center;
 }
 
-.recording-guide__copy {
-  width: 344px;
-  display: grid;
-}
-
-.recording-guide__eyebrow {
-  margin: 0;
-  color: #c6c6c6;
-  font-size: 18px;
-  font-weight: 400;
-  line-height: 26px;
-}
-
-.recording-guide__title {
-  margin: 0;
-  color: #ffffff;
-  font-size: 24px;
-  font-weight: 500;
-  line-height: 34px;
-}
-
-.recording-guide__card {
-  width: 351px;
-  padding: 22px 27px 26px;
-  border-radius: 8px;
-  background: rgba(61, 62, 64, 0.8);
-  display: grid;
-  gap: 28px;
-}
-
-.recording-guide__row {
-  display: flex;
-  align-items: flex-start;
-  gap: 4px;
-  color: #c6c6c6;
-  font-size: 16px;
-  font-weight: 400;
-  line-height: 22px;
-  white-space: nowrap;
-}
-
-.recording-guide__row--full {
-  width: 100%;
-  align-items: flex-end;
-}
-
-.recording-guide__row-group {
-  display: inline-flex;
-  align-items: flex-start;
-  gap: 4px;
-  white-space: nowrap;
-}
-
-.recording-guide__blank-image {
-  display: block;
-  height: 23px;
-  object-fit: contain;
-  flex: 0 0 auto;
-  transform: translateY(-1px);
-}
-
-.recording-guide__blank-image--short {
-  width: 41px;
-}
-
-.recording-guide__phone-line-wrap {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  align-items: flex-end;
-  height: 22px;
-}
-
-.recording-guide__phone-line {
-  display: block;
-  width: 150px;
-  height: 1px;
-  object-fit: fill;
-  transform: translateY(-2px);
-}
-
 .speech-bubble {
   position: absolute;
-  left: 28px;
-  right: 28px;
+  left: 31.5px;
+  right: 31.5px;
   top: 420px;
   z-index: 3;
   min-height: 78px;
@@ -508,7 +420,10 @@ button {
 }
 
 .speech-bubble--with-text {
-  min-height: 92px;
+  top: auto;
+  bottom: calc(100% - 498px);
+  min-height: 78px;
+  max-height: 132px;
   padding: 18px 20px 24px 22px;
   align-items: flex-end;
   justify-content: space-between;
@@ -534,6 +449,10 @@ button {
 
 .speech-bubble--with-text .speech-bubble__text {
   min-width: 0;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .speech-bubble__tail {
