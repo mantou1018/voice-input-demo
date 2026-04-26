@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import applyBottomGlowSvg from './assets/apply-bottom-glow.svg';
 import applyOverlayCapturePng from './assets/apply-overlay-capture.png';
 import closeIconPng from './assets/close-icon.png';
+import doneCheckSvg from './assets/done-check.svg';
 import jobDetailBgPng from './assets/job-detail-bg.png';
 import listenLeftPng from './assets/listen-left.png';
 import listenRightPng from './assets/listen-right.png';
@@ -81,11 +82,13 @@ function JobScreen({ onApply }: { onApply: () => void }) {
 
 function ApplyScreen({
   isActive,
+  isDoneEnabled,
   onClose,
   onDone,
   onRetry,
 }: {
   isActive: boolean;
+  isDoneEnabled: boolean;
   onClose: () => void;
   onDone: () => void;
   onRetry: () => void;
@@ -173,11 +176,28 @@ function ApplyScreen({
           >
             重说
           </button>
-          <button className="relative h-[48px] w-[238px] overflow-hidden rounded-[45px]" onClick={onDone} type="button">
+          <button
+            className="relative h-[48px] w-[238px] overflow-hidden rounded-[45px]"
+            disabled={!isDoneEnabled}
+            onClick={onDone}
+            type="button"
+          >
             <div className="absolute inset-0 bg-[linear-gradient(343.43deg,#defcff_14.824%,#dbfff6_91.068%)]" />
             <div className="absolute left-[-59px] top-[32px] h-[45px] w-[128px] rounded-[50%] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.8)_0%,rgba(255,255,255,0)_72%)]" />
             <div className="absolute left-[186px] top-[-28px] h-[41px] w-[144px] rounded-[50%] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.7)_0%,rgba(255,255,255,0)_72%)]" />
-            <span className="absolute left-[105px] top-[13.5px] z-10 text-[15px] font-medium leading-[21px] text-[#919191]">
+            {isDoneEnabled ? (
+              <img
+                alt=""
+                aria-hidden="true"
+                className="absolute left-[78px] top-[14px] z-10 h-[20px] w-[20px]"
+                src={doneCheckSvg}
+              />
+            ) : null}
+            <span
+              className={`absolute top-[13.5px] z-10 text-[15px] font-medium leading-[21px] ${
+                isDoneEnabled ? 'left-[100px] text-[#222222]' : 'left-[105px] text-[#919191]'
+              }`}
+            >
               我说完了
             </span>
             <div className="absolute inset-0 rounded-[45px] shadow-[inset_0_-3px_14.5px_rgba(255,255,255,0.6)]" />
@@ -189,9 +209,10 @@ function ApplyScreen({
 }
 
 export default function App() {
-  const { actions } = useVoiceSession();
+  const { actions, transcriptText } = useVoiceSession();
   const [overlayVisible, setOverlayVisible] = useState(false);
   const [overlayActive, setOverlayActive] = useState(false);
+  const isDoneEnabled = transcriptText.trim().length > 0;
 
   function startApplyFlow() {
     setOverlayVisible(true);
@@ -228,6 +249,7 @@ export default function App() {
       {overlayVisible ? (
         <ApplyScreen
           isActive={overlayActive}
+          isDoneEnabled={isDoneEnabled}
           onClose={closeApplyScreen}
           onDone={finishRecording}
           onRetry={retryRecording}
