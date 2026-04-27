@@ -64,15 +64,13 @@
   .overlay-content {
     opacity: 0;
     transform: translateY(12px);
-    transition:
-      opacity 260ms ease-out,
-      transform 260ms ease-out;
-    transition-delay: 140ms;
   }
 
   .overlay-content--active {
     opacity: 1;
     transform: translateY(0);
+    animation: overlay-content-in 180ms ease-out both;
+    animation-delay: 80ms;
   }
 
   .wave-bar {
@@ -106,5 +104,17 @@
   50% {
     opacity: 0.96;
     transform: scaleY(0.96);
+  }
+}
+
+@keyframes overlay-content-in {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
