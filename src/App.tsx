@@ -12,6 +12,7 @@ import statusRightFailureSvg from './assets/status-right-failure.svg';
 import statusRightSuccessSvg from './assets/status-right-success.svg';
 import voiceTagPng from './assets/voice-tag.png';
 import { useVoiceSession } from './hooks/useVoiceSession';
+import type { ResumeExtractionItem } from './types/speech';
 
 function PhoneShell({ children }: { children: ReactNode }) {
   const [scale, setScale] = useState(1);
@@ -42,6 +43,40 @@ function PhoneShell({ children }: { children: ReactNode }) {
 
 function HomeIndicator() {
   return <div className="absolute left-[140.55px] top-[84px] h-[5px] w-[134px] rounded-full bg-black" />;
+}
+
+function AssistantBubble({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex items-start gap-[8px]">
+      <img alt="" className="h-[24px] w-[24px]" src={listeningStarSvg} />
+      <div className="max-w-[326px] rounded-bl-[12px] rounded-br-[12px] rounded-tl-[2px] rounded-tr-[12px] bg-[#ffffff] px-[12px] py-[10px]">
+        <div className="text-[17px] leading-[27px] text-[#222222]">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function UserBubble({ text }: { text: string }) {
+  return (
+    <div className="flex w-fit max-w-full self-end justify-end">
+      <div
+        className="inline-flex max-w-[350px] rounded-bl-[16px] rounded-br-[16px] rounded-tl-[16px] rounded-tr-[2px] px-[16px] py-[12px]"
+        style={{ backgroundImage: 'linear-gradient(93.86189773488236deg, rgb(128, 244, 255) 38.2%, rgb(124, 248, 217) 76.432%)' }}
+      >
+        <p className="m-0 break-words text-[17px] leading-[24px] text-[#1a1f28]">{text}</p>
+      </div>
+    </div>
+  );
+}
+
+function getDetectedValue(items: ResumeExtractionItem[] | null | undefined, id: string) {
+  const item = items?.find((entry) => entry.id === id);
+  return item?.detected ? item.value : '';
+}
+
+function normalizeAgeDisplay(value: string) {
+  const match = value.match(/\d+/);
+  return match?.[0] ?? '';
 }
 
 function JobScreen({ onApply }: { onApply: () => void }) {
@@ -97,6 +132,7 @@ function ApplyScreen({
   onRetry,
   phoneText,
   positionText,
+  transcriptText,
 }: {
   activeExtractionIndex: number;
   ageText: string;
@@ -111,10 +147,18 @@ function ApplyScreen({
   onRetry: () => void;
   phoneText: string;
   positionText: string;
+  transcriptText: string;
 }) {
   const showExtracting = mode === 'extracting';
   const showReview = mode === 'review';
   const revealedCount = showExtracting ? Math.max(0, activeExtractionIndex + 1) : 4;
+  const hasTranscript = transcriptText.trim().length > 0;
+  const missingFieldLabels = [
+    !phoneText ? '手机号' : '',
+    !positionText ? '意向职位' : '',
+    !cityText ? '意向城市' : '',
+    !ageText ? '年龄' : '',
+  ].filter(Boolean);
 
   return (
     <div className="absolute inset-0 z-30 overflow-hidden">
@@ -154,7 +198,7 @@ function ApplyScreen({
           {showReview ? '请确认您的信息' : '您可以这样对我说'}
         </h1>
         <p className="m-0 mt-1 text-[16px] leading-[22px] text-[#9c9c9c]">
-          {showReview ? '点击下方信息可手动修改' : '完善您的简历'}
+          {showReview ? '' : '完善您的简历'}
         </p>
       </div>
 
@@ -163,78 +207,61 @@ function ApplyScreen({
           <span>我今年</span>
           <span className="mb-[2px] block h-px w-[35px] bg-[#d9dfe8]" />
           <span>岁，</span>
-          {showReview ? <span className="absolute left-[70px] top-0 text-[20px] font-medium leading-7 text-[#07d3a0]">{ageText}</span> : null}
+          {showReview && ageText ? <span className="absolute left-[70px] top-0 text-[20px] font-medium leading-7 text-[#07d3a0]">{ageText}</span> : null}
         </div>
         <div className="relative mt-6 flex items-end gap-1 text-[20px] leading-7">
           <span>我的手机号是</span>
           <span className="mb-[2px] block h-px min-w-0 flex-1 bg-[#d9dfe8]" />
           <span>，</span>
-          {showReview ? <span className="absolute left-[141px] top-0 text-[20px] font-medium leading-7 text-[#07d3a0]">{phoneText}</span> : null}
+          {showReview && phoneText ? <span className="absolute left-[141px] top-0 text-[20px] font-medium leading-7 text-[#07d3a0]">{phoneText}</span> : null}
         </div>
         <div className="relative mt-6 flex items-end gap-1 text-[20px] leading-7">
           <span>我的意向城市是</span>
           <span className="mb-[2px] block h-px min-w-0 flex-1 bg-[#d9dfe8]" />
           <span>，</span>
-          <span className="absolute left-[151px] top-1 text-[14px] leading-5 text-[#c6c6c6]">市/区/县（最多3个）</span>
-          {showReview ? <span className="absolute left-[165px] top-0 text-[20px] font-medium leading-7 text-[#07d3a0]">{cityText}</span> : null}
+          {!showReview ? (
+            <span className="absolute left-[151px] top-1 text-[14px] leading-5 text-[#c6c6c6]">市/区/县（最多3个）</span>
+          ) : null}
+          {showReview && cityText ? <span className="absolute left-[165px] top-0 text-[20px] font-medium leading-7 text-[#07d3a0]">{cityText}</span> : null}
         </div>
         <div className="relative mt-6 flex items-end gap-1 text-[20px] leading-7">
           <span>我的意向职位是</span>
           <span className="mb-[2px] block h-px min-w-0 flex-1 bg-[#d9dfe8]" />
           <span>。</span>
-          {showReview ? <span className="absolute left-[151px] top-0 text-[20px] font-medium leading-7 text-[#07d3a0]">{positionText}</span> : null}
+          {showReview && positionText ? <span className="absolute left-[195px] top-0 text-[20px] font-medium leading-7 text-[#07d3a0]">{positionText}</span> : null}
         </div>
       </div>
 
-      {showExtracting ? (
-        <div className={`overlay-content absolute left-1/2 top-[592px] flex h-[25px] -translate-x-1/2 items-center gap-1 ${isActive ? 'overlay-content--active' : ''}`}>
-          <img alt="" className="h-[20px] w-[20px]" src={statusLeftSuccessSvg} />
-          <p className="m-0 text-[18px] font-medium leading-[25px] text-[#222222]">识别中</p>
-          <img alt="" className="h-[20px] w-[10px]" src={statusRightSuccessSvg} />
+      <div className={`overlay-content absolute left-[32px] top-[497px] flex w-[350px] flex-col gap-[20px] ${isActive ? 'overlay-content--active' : ''}`}>
+        {!showReview ? <AssistantBubble>请说，我在听...</AssistantBubble> : null}
+          {hasTranscript ? <UserBubble text={transcriptText} /> : null}
+          {showExtracting ? <AssistantBubble>正在识别您的信息...</AssistantBubble> : null}
+          {showReview ? (
+            <AssistantBubble>
+              {missingFieldLabels.length > 0 ? (
+                <div>您的{missingFieldLabels.join('、')}识别失败，请重说或点击上方信息填写吧</div>
+              ) : null}
+            </AssistantBubble>
+          ) : null}
         </div>
-      ) : null}
-
-      {showReview ? (
-        <>
-          <div className={`overlay-content absolute left-[56px] top-[454px] text-[16px] leading-[22px] text-[#9c9c9c] ${isActive ? 'overlay-content--active' : ''}`}>
-            点击上方信息可手动修改
-          </div>
-          <div className={`overlay-content absolute left-1/2 top-[592px] flex -translate-x-1/2 items-start gap-1 ${isActive ? 'overlay-content--active' : ''}`}>
-            <img alt="" className="mt-[2px] h-[20px] w-[20px]" src={statusLeftSuccessSvg} />
-            <div className="text-[18px] font-medium leading-[25px] text-[#222222]">
-              <div>您的手机号和意向职位识别失败，</div>
-              <div>请重说一次吧</div>
-            </div>
-            <img alt="" className="mt-[2px] h-[20px] w-[10px]" src={statusRightFailureSvg} />
-          </div>
-        </>
-      ) : null}
 
       {!showExtracting && !showReview ? (
-        <>
-          <div className={`overlay-content absolute left-[32px] top-[497px] flex h-[47px] w-[350px] items-start gap-[8px] ${isActive ? 'overlay-content--active' : ''}`}>
-            <img alt="" className="h-[24px] w-[24px]" src={listeningStarSvg} />
-            <div className="rounded-bl-[12px] rounded-br-[12px] rounded-tl-[2px] rounded-tr-[12px] bg-[#ffffff] px-[12px] py-[10px]">
-              <p className="m-0 whitespace-nowrap text-[17px] leading-[27px] text-[#222222]">请说，我在听...</p>
-            </div>
-          </div>
-          <div className={`overlay-content absolute left-1/2 top-[675px] flex h-[15px] w-[118px] -translate-x-1/2 items-center justify-center gap-[2px] ${isActive ? 'overlay-content--active' : ''}`}>
-            {[
-              11, 11, 7, 15, 7,
-              11, 11, 15, 7, 7,
-              11, 11, 15, 7, 7,
-              11, 11, 15, 7, 7,
-              11, 11, 7, 15, 7,
-              11, 11, 7, 15, 7,
-            ].map((height, index) => (
-              <span
-                className="wave-bar block w-[2px] rounded-[1.5px] bg-[#255153]"
-                key={index}
-                style={{ height: `${height}px`, animationDelay: `${index * 0.04}s` }}
-              />
-            ))}
-          </div>
-        </>
+        <div className={`overlay-content absolute left-1/2 top-[675px] flex h-[15px] w-[118px] -translate-x-1/2 items-center justify-center gap-[2px] ${isActive ? 'overlay-content--active' : ''}`}>
+          {[
+            11, 11, 7, 15, 7,
+            11, 11, 15, 7, 7,
+            11, 11, 15, 7, 7,
+            11, 11, 15, 7, 7,
+            11, 11, 7, 15, 7,
+            11, 11, 7, 15, 7,
+          ].map((height, index) => (
+            <span
+              className="wave-bar block w-[2px] rounded-[1.5px] bg-[#255153]"
+              key={index}
+              style={{ height: `${height}px`, animationDelay: `${index * 0.04}s` }}
+            />
+          ))}
+        </div>
       ) : null}
 
       <div className={`overlay-content absolute left-0 top-[802px] h-[64px] w-[414px] ${isActive ? 'overlay-content--active' : ''}`}>
@@ -255,25 +282,29 @@ function ApplyScreen({
             <div className="absolute inset-0 bg-[linear-gradient(343.43deg,#defcff_14.824%,#dbfff6_91.068%)]" />
             <div className="absolute left-[-59px] top-[32px] h-[45px] w-[128px] rounded-[50%] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.8)_0%,rgba(255,255,255,0)_72%)]" />
             <div className="absolute left-[186px] top-[-28px] h-[41px] w-[144px] rounded-[50%] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.7)_0%,rgba(255,255,255,0)_72%)]" />
-            {showExtracting || isDoneEnabled ? (
-              <img
-                alt=""
-                aria-hidden="true"
-                className="absolute left-[78px] top-[14px] z-10 h-[20px] w-[20px]"
-                src={doneCheckSvg}
-              />
-            ) : null}
-            <span
-              className={`absolute top-[13.5px] z-10 text-[15px] font-medium leading-[21px] ${
-                showReview
-                  ? 'left-[89px] text-[#222222]'
-                  : showExtracting || isDoneEnabled
-                    ? 'left-[100px] text-[#222222]'
-                    : 'left-[89px] text-[#919191]'
-              }`}
-            >
-              {showReview ? '确认并报名' : '我说完了'}
-            </span>
+            <div className="absolute inset-0 z-10 flex items-center justify-center">
+              <div className="flex items-center gap-[6px]">
+                {showExtracting || isDoneEnabled ? (
+                  <img
+                    alt=""
+                    aria-hidden="true"
+                    className="h-[20px] w-[20px] shrink-0"
+                    src={doneCheckSvg}
+                  />
+                ) : null}
+                <span
+                  className={`text-[15px] font-medium leading-[21px] ${
+                    showReview
+                      ? 'text-[#222222]'
+                      : showExtracting || isDoneEnabled
+                        ? 'text-[#222222]'
+                        : 'text-[#919191]'
+                  }`}
+                >
+                  {showReview ? '确认并报名' : '我说完了'}
+                </span>
+              </div>
+            </div>
             <div className="absolute inset-0 rounded-[45px] shadow-[inset_0_-3px_14.5px_rgba(255,255,255,0.6)]" />
           </button>
         </div>
@@ -287,11 +318,16 @@ export default function App() {
   const [overlayVisible, setOverlayVisible] = useState(false);
   const [overlayActive, setOverlayActive] = useState(false);
   const isDoneEnabled = transcriptText.trim().length > 0;
-  const isConfirmEnabled = true;
-  const ageText = analysis?.extractionItems.find((item) => item.id === 'age')?.value ?? '36';
-  const phoneText = analysis?.extractionItems.find((item) => item.id === 'phone')?.value ?? '13657485968';
-  const cityText = analysis?.extractionItems.find((item) => item.id === 'city')?.value ?? '北京、上海';
-  const positionText = analysis?.extractionItems.find((item) => item.id === 'position')?.value ?? '普工/操作工...';
+  const extractionItems = analysis?.extractionItems;
+  const ageText = normalizeAgeDisplay(getDetectedValue(extractionItems, 'age'));
+  const phoneText = getDetectedValue(extractionItems, 'phone');
+  const cityText = getDetectedValue(extractionItems, 'city');
+  const positionText = getDetectedValue(extractionItems, 'position');
+  const isConfirmEnabled =
+    ageText.trim().length > 0 &&
+    phoneText.trim().length > 0 &&
+    cityText.trim().length > 0 &&
+    positionText.trim().length > 0;
   const overlayMode: 'recording' | 'extracting' | 'review' =
     phase === 'extracting' ? 'extracting' : phase === 'review' ? 'review' : 'recording';
 
@@ -348,6 +384,7 @@ export default function App() {
           onRetry={retryRecording}
           phoneText={phoneText}
           positionText={positionText}
+          transcriptText={transcriptText}
         />
       ) : null}
     </PhoneShell>

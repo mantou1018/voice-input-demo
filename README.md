@@ -6,13 +6,25 @@
 
 - 已手工搭好 `React + Vite + TypeScript` 项目结构。
 - 语音能力依赖浏览器原生 `SpeechRecognition / webkitSpeechRecognition`。
-- 摘要服务为前端 mock 规则生成器，不依赖后端。
+- 语音转文字后，会通过本地 `/api/resume-agent` 调用 AI 报名助手提取信息。
+
+## AI Agent 配置
+
+先创建 `.env.local`：
+
+```bash
+AI_API_KEY=你的_api_key
+AI_API_BASE_URL=https://api.openai.com/v1
+AI_MODEL=gpt-4.1-mini
+```
+
+如果你的接口不是 OpenAI，但兼容 `/chat/completions`，把 `AI_API_BASE_URL` 和 `AI_MODEL` 改成对应服务商给你的值即可。
+
+注意：不要把真实 API Key 写进前端代码，也不要提交到 Git。
 
 ## 启动方式
 
-本机当前缺少 `node` / `npm` / `pnpm`，所以还不能直接安装依赖运行。
-
-安装 Node 18+ 后执行：1
+安装 Node 18+ 后执行：
 
 ```bash
 npm install

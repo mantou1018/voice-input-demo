@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createSpeechRecognizerAdapter } from '../lib/speech/createSpeechRecognizerAdapter';
+import { analyzeResumeWithAgent } from '../lib/resumeAgentClient';
 import type {
   RecordingSessionState,
   ResumeAnalysis,
@@ -8,7 +9,6 @@ import type {
   SpeechRecognizerError,
   TranscriptChunk,
 } from '../types/speech';
-import { buildResumeAnalysis } from '../utils/resumeCard';
 
 export type VoiceApplyPhase =
   | 'job'
@@ -319,7 +319,7 @@ export function useVoiceSession() {
     }, STOP_GRACE_PERIOD_MS);
   }
 
-  function finalizeTranscript() {
+  async function finalizeTranscript() {
     const transcript = composeTranscript(
       transcriptChunksRef.current,
       interimTextRef.current,
@@ -332,14 +332,32 @@ export function useVoiceSession() {
       return;
     }
 
-    const nextAnalysis = buildResumeAnalysis(transcript);
-    analysisRef.current = nextAnalysis;
-    setAnalysis(nextAnalysis);
-    setCard(nextAnalysis.card);
     setRecordingState('summarizing');
     setPhase('extracting');
     setActiveExtractionIndex(-1);
     clearPendingTransitions();
+
+    let nextAnalysis: ResumeAnalysis;
+
+    try {
+      nextAnalysis = await analyzeResumeWithAgent(transcript);
+    } catch (agentError) {
+      setError({
+        code: 'recognition-failed',
+        message:
+          agentError instanceof Error
+            ? agentError.message
+            : 'AI 报名助手调用失败，请稍后重试。',
+        recoverable: true,
+      });
+      setRecordingState('error');
+      setPhase('intro');
+      return;
+    }
+
+    analysisRef.current = nextAnalysis;
+    setAnalysis(nextAnalysis);
+    setCard(nextAnalysis.card);
 
     const extractionItems = nextAnalysis.extractionItems.filter(
       (item) => item.detected && item.sourceText,
