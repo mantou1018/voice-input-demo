@@ -105,6 +105,24 @@ function mapNativeError(error: string): SpeechRecognizerError {
   }
 }
 
+function mapStartException(error: unknown): SpeechRecognizerError {
+  const message = error instanceof Error ? error.message : String(error);
+
+  if (/already started/i.test(message)) {
+    return {
+      code: 'recognition-failed',
+      message: '语音识别已经在进行中，请稍等一下再继续操作。',
+      recoverable: true,
+    };
+  }
+
+  return {
+    code: 'recognition-failed',
+    message: '语音识别启动失败，请重试一次。',
+    recoverable: true,
+  };
+}
+
 export function createSpeechRecognizerAdapter(
   language = 'zh-CN',
 ): SpeechRecognizerAdapter {
@@ -209,7 +227,11 @@ export function createSpeechRecognizerAdapter(
       chunkMap = new Map();
       interimText = '';
       emitResult();
-      instance.start();
+      try {
+        instance.start();
+      } catch (error) {
+        emitError(mapStartException(error));
+      }
     },
     stop() {
       recognition?.stop();

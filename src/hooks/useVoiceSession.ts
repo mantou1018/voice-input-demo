@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createSpeechRecognizerAdapter } from '../lib/speech/createSpeechRecognizerAdapter';
+import { analyzeResumeWithAgent } from '../lib/resumeAgentClient';
 import type {
   RecordingSessionState,
   ResumeAnalysis,
@@ -8,7 +9,6 @@ import type {
   SpeechRecognizerError,
   TranscriptChunk,
 } from '../types/speech';
-import { buildResumeAnalysis } from '../utils/resumeCard';
 
 export type VoiceApplyPhase =
   | 'job'
@@ -39,6 +39,20 @@ function createEmptyTranscriptError(): SpeechRecognizerError {
 
 const STOP_GRACE_PERIOD_MS = 380;
 
+function mergeResumeAnalysis(previous: ResumeAnalysis, next: ResumeAnalysis): ResumeAnalysis {
+  const previousItems = new Map(previous.extractionItems.map((item) => [item.id, item]));
+  const mergedItems = next.extractionItems.map((item) => {
+    const prev = previousItems.get(item.id);
+    return item.detected ? item : prev ?? item;
+  });
+
+  return {
+    card: next.card,
+    nameSourceText: next.nameSourceText ?? previous.nameSourceText,
+    extractionItems: mergedItems,
+  };
+}
+
 export function useVoiceSession() {
   const adapterRef = useRef(createSpeechRecognizerAdapter());
   const ignoreAbortErrorRef = useRef(false);
@@ -51,6 +65,8 @@ export function useVoiceSession() {
   const startTimeRef = useRef<number | null>(null);
   const pendingTimeoutsRef = useRef<number[]>([]);
   const analysisRef = useRef<ResumeAnalysis | null>(null);
+  const preserveExistingRef = useRef(false);
+  const recognitionRunTokenRef = useRef(0);
   const successToastTimeoutRef = useRef<number | null>(null);
   const stopGraceTimeoutRef = useRef<number | null>(null);
 
@@ -223,6 +239,7 @@ export function useVoiceSession() {
   }
 
   function closeOverlay() {
+    recognitionRunTokenRef.current += 1;
     ignoreAbortErrorRef.current = true;
     finalizeOnStopRef.current = false;
     clearStopGraceTimeout();
@@ -235,20 +252,29 @@ export function useVoiceSession() {
     setRecordingState('idle');
   }
 
-  async function startHoldToTalk() {
+  async function startHoldToTalk(options?: { preserveExisting?: boolean }) {
     if (!isSupported) {
       setError(createUnsupportedError());
       return;
     }
 
+    const preserveExisting = options?.preserveExisting ?? false;
+    preserveExistingRef.current = preserveExisting;
+    recognitionRunTokenRef.current += 1;
+    const runToken = recognitionRunTokenRef.current;
     const startToken = Date.now();
     pendingStartTokenRef.current = startToken;
     releasedBeforeStartRef.current = false;
     ignoreAbortErrorRef.current = false;
     finalizeOnStopRef.current = false;
     resetTranscript();
-    setCard(null);
-    resetAnalysisState();
+    if (!preserveExisting) {
+      setCard(null);
+      resetAnalysisState();
+    } else {
+      clearPendingTransitions();
+      setActiveExtractionIndex(-1);
+    }
     setError(null);
     setRecordingState('requestingPermission');
 
@@ -256,6 +282,7 @@ export function useVoiceSession() {
       await ensureMicrophoneAccess();
 
       if (
+        recognitionRunTokenRef.current !== runToken ||
         pendingStartTokenRef.current !== startToken ||
         releasedBeforeStartRef.current
       ) {
@@ -270,10 +297,9 @@ export function useVoiceSession() {
     } catch (permissionError) {
       setError({
         code: 'permission-denied',
-        message:
-          permissionError instanceof Error
-            ? permissionError.message
-            : '麦克风权限申请失败，请检查手机浏览器设置，并确认是在系统浏览器中打开。',
+        message: microphoneGrantedRef.current
+          ? '当前浏览器环境限制了语音识别，请改用系统浏览器打开后继续补充。'
+          : '麦克风权限申请失败，请允许麦克风访问后继续补充。',
         recoverable: true,
       });
       setRecordingState('error');
@@ -282,12 +308,18 @@ export function useVoiceSession() {
   }
 
   function cancelHoldToTalk() {
+    recognitionRunTokenRef.current += 1;
     ignoreAbortErrorRef.current = true;
     finalizeOnStopRef.current = false;
     clearStopGraceTimeout();
     adapterRef.current.abort();
     resetTranscript();
-    resetAnalysisState();
+    if (!preserveExistingRef.current) {
+      resetAnalysisState();
+    } else {
+      clearPendingTransitions();
+      setActiveExtractionIndex(-1);
+    }
     setRecordingState('idle');
     setPhase('intro');
   }
@@ -319,7 +351,8 @@ export function useVoiceSession() {
     }, STOP_GRACE_PERIOD_MS);
   }
 
-  function finalizeTranscript() {
+  async function finalizeTranscript() {
+    const runToken = recognitionRunTokenRef.current;
     const transcript = composeTranscript(
       transcriptChunksRef.current,
       interimTextRef.current,
@@ -332,16 +365,46 @@ export function useVoiceSession() {
       return;
     }
 
-    const nextAnalysis = buildResumeAnalysis(transcript);
-    analysisRef.current = nextAnalysis;
-    setAnalysis(nextAnalysis);
-    setCard(nextAnalysis.card);
     setRecordingState('summarizing');
     setPhase('extracting');
     setActiveExtractionIndex(-1);
     clearPendingTransitions();
 
-    const extractionItems = nextAnalysis.extractionItems.filter(
+    let nextAnalysis: ResumeAnalysis;
+
+    try {
+      nextAnalysis = await analyzeResumeWithAgent(transcript);
+    } catch (agentError) {
+      if (recognitionRunTokenRef.current !== runToken) {
+        return;
+      }
+      setError({
+        code: 'recognition-failed',
+        message:
+          agentError instanceof Error
+            ? agentError.message
+            : 'AI 报名助手调用失败，请稍后重试。',
+        recoverable: true,
+      });
+      setRecordingState('error');
+      setPhase('intro');
+      return;
+    }
+
+    if (recognitionRunTokenRef.current !== runToken) {
+      return;
+    }
+
+    const mergedAnalysis =
+      preserveExistingRef.current && analysisRef.current
+        ? mergeResumeAnalysis(analysisRef.current, nextAnalysis)
+        : nextAnalysis;
+
+    analysisRef.current = mergedAnalysis;
+    setAnalysis(mergedAnalysis);
+    setCard(mergedAnalysis.card);
+
+    const extractionItems = mergedAnalysis.extractionItems.filter(
       (item) => item.detected && item.sourceText,
     );
 

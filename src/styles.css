@@ -61,6 +61,13 @@
     transform: scale(1);
   }
 
+  .apply-dialog-surface {
+    background-image: url("./assets/live-room-overlay.png");
+    background-position: center bottom;
+    background-repeat: no-repeat;
+    background-size: 100% auto;
+  }
+
   .overlay-content {
     opacity: 0;
     transform: translateY(12px);
@@ -76,6 +83,28 @@
   .wave-bar {
     animation: wave-bar 1.2s ease-in-out infinite;
     transform-origin: center;
+  }
+
+  .chat-message {
+    transition:
+      opacity 220ms ease,
+      transform 220ms ease,
+      max-height 220ms ease,
+      margin 220ms ease;
+    max-height: 220px;
+  }
+
+  .chat-message--entering {
+    animation: chat-message-in 220ms ease both;
+  }
+
+  .chat-message--exiting {
+    opacity: 0;
+    transform: translateY(-24px);
+    max-height: 0;
+    margin-top: -8px;
+    margin-bottom: -12px;
+    overflow: hidden;
   }
 }
 
@@ -111,6 +140,18 @@
   0% {
     opacity: 0;
     transform: translateY(12px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes chat-message-in {
+  0% {
+    opacity: 0;
+    transform: translateY(18px);
   }
 
   100% {
