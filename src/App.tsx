@@ -169,8 +169,8 @@ function ApplyScreen({
   const headingSubtitle = hasFormContent
     ? '点击上方信息可手动修改'
     : '完善您的简历';
-  const secondaryButtonLabel = showError ? '继续补充' : '重说';
-  const secondaryButtonClick = showError ? onRetry : onRetry;
+  const secondaryButtonLabel = '重说';
+  const secondaryButtonClick = onRetry;
   const primaryButtonLabel = showReview
     ? '确认并报名'
     : showExtracting
