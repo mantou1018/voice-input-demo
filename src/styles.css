@@ -66,6 +66,22 @@
     background-position: center bottom;
     background-repeat: no-repeat;
     background-size: 100% auto;
+    overflow: hidden;
+  }
+
+  .apply-dialog-surface::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 0px;
+    width: 110%;
+    aspect-ratio: 828 / 498;
+    transform: translateX(-50%);
+    background-image: url("./assets/bottom-glow.png");
+    background-position: center bottom;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    pointer-events: none;
   }
 
   .overlay-content {
