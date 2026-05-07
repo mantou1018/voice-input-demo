@@ -20,11 +20,15 @@ import {
   settleChatMessages as settleChatMessageList,
   type ChatMessage,
 } from './utils/chatMessages';
+import { AGE_OPTIONS, normalizeAgeValue } from './utils/agePicker';
+import { isCompletePhoneNumber, normalizePhoneInput } from './utils/phoneInput';
 import type { ResumeExtractionItem } from './types/speech';
 
-type EditableField = 'position';
+type EditableField = 'age' | 'phone' | 'position';
 
 type ManualEdits = {
+  age: string | null;
+  phone: string | null;
   position: string | null;
 };
 
@@ -88,6 +92,51 @@ function UserBubble({ text }: { text: string }) {
         style={{ backgroundImage: 'linear-gradient(93.86189773488236deg, rgb(128, 244, 255) 38.2%, rgb(124, 248, 217) 76.432%)' }}
       >
         <p className="m-0 break-words text-[17px] leading-[24px] text-[#1a1f28]">{text}</p>
+      </div>
+    </div>
+  );
+}
+
+function AgeWheelPicker({
+  onSelectAge,
+  selectedAge,
+}: {
+  onSelectAge: (age: string) => void;
+  selectedAge: string;
+}) {
+  const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  useEffect(() => {
+    const selectedItem = itemRefs.current[selectedAge];
+    selectedItem?.scrollIntoView({ block: 'center' });
+  }, [selectedAge]);
+
+  return (
+    <div className="relative h-[214px] overflow-hidden bg-white">
+      <div className="pointer-events-none absolute left-0 right-0 top-0 z-10 h-[64px] bg-[linear-gradient(180deg,#ffffff_0%,rgba(255,255,255,0)_100%)]" />
+      <div className="pointer-events-none absolute left-0 right-0 top-1/2 z-10 h-[64px] -translate-y-1/2 border-y border-[#e0e0e0]" />
+      <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 h-[64px] bg-[linear-gradient(0deg,#ffffff_0%,rgba(255,255,255,0)_100%)]" />
+      <div className="h-full snap-y snap-mandatory overflow-y-auto py-[75px] [-webkit-overflow-scrolling:touch]">
+        {AGE_OPTIONS.map((age) => {
+          const isSelected = age === selectedAge;
+          return (
+            <button
+              className={`relative z-20 flex h-[64px] w-full snap-center items-center justify-center transition-colors ${
+                isSelected
+                  ? 'text-[20px] font-medium leading-[28px] text-black'
+                  : 'text-[16px] font-normal leading-[22px] text-[#666666]'
+              }`}
+              key={age}
+              onClick={() => onSelectAge(age)}
+              ref={(node) => {
+                itemRefs.current[age] = node;
+              }}
+              type="button"
+            >
+              {age}岁
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -164,14 +213,24 @@ function ApplyScreen({
   onConfirm,
   onDone,
   onRetry,
+  selectedAge,
   phoneText,
+  phoneInputValue,
   positionText,
   editingField,
   chatMessages,
+  onCloseAgePicker,
+  onChangePhoneInput,
+  onClosePhoneEditor,
   onClosePositionPicker,
+  onConfirmAgePicker,
+  onConfirmPhoneEditor,
   onConfirmPositionPicker,
+  onOpenAgePicker,
+  onOpenPhoneEditor,
   onOpenPositionPicker,
   onResetPositionPicker,
+  onSelectAge,
   onSelectPositionCategory,
   onSelectPositionOption,
   positionPickerState,
@@ -187,14 +246,24 @@ function ApplyScreen({
   onConfirm: () => void;
   onDone: () => void;
   onRetry: () => void;
+  selectedAge: string;
   phoneText: string;
+  phoneInputValue: string;
   positionText: string;
   editingField: EditableField | null;
   chatMessages: ChatMessage[];
+  onCloseAgePicker: () => void;
+  onChangePhoneInput: (value: string) => void;
+  onClosePhoneEditor: () => void;
   onClosePositionPicker: () => void;
+  onConfirmAgePicker: () => void;
+  onConfirmPhoneEditor: () => void;
   onConfirmPositionPicker: () => void;
+  onOpenAgePicker: () => void;
+  onOpenPhoneEditor: () => void;
   onOpenPositionPicker: () => void;
   onResetPositionPicker: () => void;
+  onSelectAge: (age: string) => void;
   onSelectPositionCategory: (categoryId: string) => void;
   onSelectPositionOption: (option: string) => void;
   positionPickerState: PositionPickerState;
@@ -236,7 +305,10 @@ function ApplyScreen({
     !cityText ? '意向城市' : '',
     !ageText ? '年龄' : '',
   ].filter(Boolean);
+  const isAgePickerOpen = editingField === 'age';
+  const isPhoneEditorOpen = editingField === 'phone';
   const isPositionPickerOpen = editingField === 'position';
+  const isPhoneConfirmEnabled = isCompletePhoneNumber(phoneInputValue);
   const selectedCategory = getPositionPickerCategory(positionPickerState.selectedCategoryId);
 
   return (
@@ -265,13 +337,29 @@ function ApplyScreen({
           <span>我今年</span>
           <span className="mb-[2px] block h-px w-[35px] bg-[#d9dfe8]" />
           <span>岁，</span>
-          {showReview && ageText ? <span className="absolute left-[70px] top-0 text-[20px] font-medium leading-7 text-[#07d3a0]">{ageText}</span> : null}
+          {showReview && ageText ? (
+            <button
+              className="absolute left-[70px] top-0 text-[20px] font-medium leading-7 text-[#07d3a0]"
+              onClick={onOpenAgePicker}
+              type="button"
+            >
+              {ageText}
+            </button>
+          ) : null}
         </div>
         <div className="relative mt-6 flex items-end gap-1 text-[20px] leading-7">
           <span>我的手机号是</span>
           <span className="mb-[2px] block h-px min-w-0 flex-1 bg-[#d9dfe8]" />
           <span>，</span>
-          {showReview && phoneText ? <span className="absolute left-[141px] top-0 text-[20px] font-medium leading-7 text-[#07d3a0]">{phoneText}</span> : null}
+          {showReview && phoneText ? (
+            <button
+              className="absolute left-[141px] top-0 text-[20px] font-medium leading-7 text-[#07d3a0]"
+              onClick={onOpenPhoneEditor}
+              type="button"
+            >
+              {phoneText}
+            </button>
+          ) : null}
         </div>
         <div className="relative mt-6 flex items-end gap-1 text-[20px] leading-7">
           <span>我的意向城市是</span>
@@ -471,6 +559,101 @@ function ApplyScreen({
           </div>
         </div>
       ) : null}
+
+      {isAgePickerOpen ? (
+        <div className="absolute inset-0 z-40">
+          <button
+            aria-label="关闭年龄选择"
+            className="absolute inset-0"
+            onClick={onCloseAgePicker}
+            type="button"
+          />
+          <div className="absolute bottom-0 left-0 h-[422px] w-[414px] overflow-hidden rounded-t-[16px] bg-white">
+            <div className="relative flex h-[56px] items-center justify-center border-b border-[#f0f0f0]">
+              <h2 className="m-0 text-[18px] font-medium leading-[24px] text-black">选择年龄</h2>
+              <button
+                className="absolute right-[8px] top-[8px] flex h-[40px] w-[40px] items-center justify-center text-[28px] leading-[28px] text-[#222222]"
+                onClick={onCloseAgePicker}
+                type="button"
+              >
+                ×
+              </button>
+            </div>
+            <AgeWheelPicker onSelectAge={onSelectAge} selectedAge={selectedAge} />
+            <div className="absolute bottom-[34px] left-[0] flex w-full items-center justify-center">
+              <button
+                className="h-[48px] w-[256px] rounded-[24px] bg-[#fe3666] text-[15px] font-medium leading-[21px] text-white"
+                disabled={!selectedAge}
+                onClick={onConfirmAgePicker}
+                type="button"
+              >
+                确定
+              </button>
+            </div>
+            <div className="absolute bottom-[8px] left-1/2 h-[5px] w-[134px] -translate-x-1/2 rounded-[100px] bg-black" />
+          </div>
+        </div>
+      ) : null}
+
+      {isPhoneEditorOpen ? (
+        <div className="absolute inset-0 z-40">
+          <button
+            aria-label="关闭手机号编辑"
+            className="absolute inset-0"
+            onClick={onClosePhoneEditor}
+            type="button"
+          />
+          <div className="absolute bottom-0 left-0 h-[306px] w-[414px] overflow-hidden rounded-t-[18px] bg-white">
+            <div className="relative flex h-[52px] items-center justify-center border-b border-[#f0f0f0]">
+              <h2 className="m-0 text-[16px] font-medium leading-[22px] text-[#222222]">修改手机号</h2>
+              <button
+                className="absolute right-[16px] top-[14px] text-[24px] leading-[24px] text-[#222222]"
+                onClick={onClosePhoneEditor}
+                type="button"
+              >
+                ×
+              </button>
+            </div>
+            <div className="px-[24px] pt-[28px]">
+              <label className="block text-[14px] leading-[20px] text-[#777777]" htmlFor="phone-editor-input">
+                手机号码
+              </label>
+              <input
+                autoFocus
+                className="mt-[10px] h-[50px] w-full rounded-[10px] border border-[#e1e5eb] bg-[#f8fafc] px-[14px] text-[22px] font-medium leading-[30px] text-[#222222] outline-none focus:border-[#07d3a0]"
+                id="phone-editor-input"
+                inputMode="numeric"
+                maxLength={11}
+                onChange={(event) => onChangePhoneInput(event.target.value)}
+                placeholder="请输入手机号"
+                type="tel"
+                value={phoneInputValue}
+              />
+              <p className="m-0 mt-[8px] text-[13px] leading-[18px] text-[#9c9c9c]">请输入 11 位手机号码</p>
+            </div>
+            <div className="absolute bottom-[20px] left-[0] flex w-full items-center justify-center gap-[14px]">
+              <button
+                className="h-[44px] w-[156px] rounded-[22px] border border-[#d8d8d8] bg-white text-[16px] font-medium leading-[22px] text-[#222222]"
+                onClick={onClosePhoneEditor}
+                type="button"
+              >
+                取消
+              </button>
+              <button
+                className={`h-[44px] w-[156px] rounded-[22px] text-[16px] font-medium leading-[22px] text-white ${
+                  isPhoneConfirmEnabled ? 'bg-[#ff3b66]' : 'bg-[#d8d8d8]'
+                }`}
+                disabled={!isPhoneConfirmEnabled}
+                onClick={onConfirmPhoneEditor}
+                type="button"
+              >
+                确定
+              </button>
+            </div>
+            <div className="absolute bottom-[6px] left-1/2 h-[5px] w-[134px] -translate-x-1/2 rounded-full bg-black" />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -480,16 +663,20 @@ export default function App() {
   const [overlayVisible, setOverlayVisible] = useState(false);
   const [overlayActive, setOverlayActive] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [manualEdits, setManualEdits] = useState<ManualEdits>({ position: null });
+  const [manualEdits, setManualEdits] = useState<ManualEdits>({ age: null, phone: null, position: null });
   const [editingField, setEditingField] = useState<EditableField | null>(null);
+  const [selectedAge, setSelectedAge] = useState('');
+  const [phoneInputValue, setPhoneInputValue] = useState('');
   const [positionPickerState, setPositionPickerState] = useState<PositionPickerState>(() =>
     resolvePositionPickerState(''),
   );
   const chatTimeoutRef = useRef<number | null>(null);
   const isDoneEnabled = transcriptText.trim().length > 0;
   const extractionItems = analysis?.extractionItems;
-  const ageText = normalizeAgeDisplay(getDetectedValue(extractionItems, 'age'));
-  const phoneText = getDetectedValue(extractionItems, 'phone');
+  const detectedAgeText = normalizeAgeDisplay(getDetectedValue(extractionItems, 'age'));
+  const ageText = manualEdits.age ?? detectedAgeText;
+  const detectedPhoneText = getDetectedValue(extractionItems, 'phone');
+  const phoneText = manualEdits.phone ?? detectedPhoneText;
   const cityText = getDetectedValue(extractionItems, 'city');
   const detectedPositionText = getDetectedValue(extractionItems, 'position');
   const positionText = manualEdits.position ?? detectedPositionText;
@@ -605,8 +792,10 @@ export default function App() {
 
   function startApplyFlow() {
     setOverlayVisible(true);
-    setManualEdits({ position: null });
+    setManualEdits({ age: null, phone: null, position: null });
     setEditingField(null);
+    setSelectedAge('');
+    setPhoneInputValue('');
     setPositionPickerState(resolvePositionPickerState(''));
     resetChatMessages();
     window.requestAnimationFrame(() => {
@@ -624,7 +813,9 @@ export default function App() {
     window.setTimeout(() => {
       setOverlayVisible(false);
       setChatMessages([]);
-      setManualEdits({ position: null });
+      setManualEdits({ age: null, phone: null, position: null });
+      setSelectedAge('');
+      setPhoneInputValue('');
       setPositionPickerState(resolvePositionPickerState(''));
     }, 260);
   }
@@ -643,6 +834,62 @@ export default function App() {
     setOverlayActive(false);
     setEditingField(null);
     window.setTimeout(() => setOverlayVisible(false), 160);
+  }
+
+  function openAgePicker() {
+    setSelectedAge(normalizeAgeValue(ageText));
+    setEditingField('age');
+  }
+
+  function closeAgePicker() {
+    setEditingField(null);
+  }
+
+  function selectAge(age: string) {
+    setSelectedAge(age);
+  }
+
+  function confirmAgePicker() {
+    if (!selectedAge) {
+      return;
+    }
+
+    const feedbackText = selectedAge === ageText ? '信息已保存' : '年龄修改成功';
+
+    setManualEdits((current) => ({
+      ...current,
+      age: selectedAge,
+    }));
+    setEditingField(null);
+    pushChatMessage('assistant', feedbackText);
+  }
+
+  function openPhoneEditor() {
+    setPhoneInputValue(phoneText);
+    setEditingField('phone');
+  }
+
+  function closePhoneEditor() {
+    setEditingField(null);
+  }
+
+  function changePhoneInput(value: string) {
+    setPhoneInputValue(normalizePhoneInput(value));
+  }
+
+  function confirmPhoneEditor() {
+    if (!isCompletePhoneNumber(phoneInputValue)) {
+      return;
+    }
+
+    const feedbackText = phoneInputValue === phoneText ? '信息已保存' : '手机号修改成功';
+
+    setManualEdits((current) => ({
+      ...current,
+      phone: phoneInputValue,
+    }));
+    setEditingField(null);
+    pushChatMessage('assistant', feedbackText);
   }
 
   function openPositionPicker() {
@@ -731,12 +978,22 @@ export default function App() {
           onDone={finishRecording}
           editingField={editingField}
           onRetry={retryRecording}
+          selectedAge={selectedAge}
+          onCloseAgePicker={closeAgePicker}
+          onChangePhoneInput={changePhoneInput}
+          onClosePhoneEditor={closePhoneEditor}
           onClosePositionPicker={closePositionPicker}
+          onConfirmAgePicker={confirmAgePicker}
+          onConfirmPhoneEditor={confirmPhoneEditor}
           onConfirmPositionPicker={confirmPositionPicker}
+          onOpenAgePicker={openAgePicker}
+          onOpenPhoneEditor={openPhoneEditor}
           onOpenPositionPicker={openPositionPicker}
           onResetPositionPicker={resetPositionPicker}
+          onSelectAge={selectAge}
           onSelectPositionCategory={selectPositionCategory}
           onSelectPositionOption={selectPositionOption}
+          phoneInputValue={phoneInputValue}
           phoneText={phoneText}
           positionText={positionText}
           positionPickerState={positionPickerState}

@@ -93,6 +93,7 @@ AI_MODEL=gpt-4.1-mini
 ## UI 与交互注意事项
 
 - 这是手机 H5 demo，很多布局是按 414 x 896 设计稿尺寸写的绝对定位。改 UI 时要同时检查桌面缩放预览和手机尺寸。
+- 每次还原前端 UI 前，必须先使用 [$ui-ux-pro-max](/Users/mantou/.codex/skills/ui-ux-pro-max/SKILL.md) 做前置审美验证，确认布局、层级、配色、字体、间距、交互状态和响应式方案不会产生明显视觉问题；还原完成后必须按该 Skill 的检查项自检一遍，避免交付粗糙或失真的设计。
 - 不要随意替换现有视觉资源；`src/assets/` 里包含职位页背景、浮层背景、麦克风、关闭按钮、状态图标等素材。
 - 按住说话流程里，`requestingPermission`、`recording`、`recognizing`、`summarizing`、`result`、`error` 都有意义，改状态机前先读完整 `useVoiceSession.ts`。
 - `preserveExisting` 用于继续补充已有信息；合并逻辑会保留上一轮已识别字段，不要轻易删除。
