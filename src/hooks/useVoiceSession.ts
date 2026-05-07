@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createSpeechRecognizerAdapter } from '../lib/speech/createSpeechRecognizerAdapter';
 import { analyzeResumeWithAgent } from '../lib/resumeAgentClient';
+import { createResumeUpdateFeedback } from '../utils/resumeUpdateFeedback';
 import type {
   RecordingSessionState,
   ResumeAnalysis,
@@ -81,6 +82,7 @@ export function useVoiceSession() {
   const [activeExtractionIndex, setActiveExtractionIndex] = useState(-1);
   const [hasApplied, setHasApplied] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [updateFeedback, setUpdateFeedback] = useState<string | null>(null);
 
   const isSupported = useMemo(() => adapterRef.current.isSupported(), []);
   const transcriptText = composeTranscript(transcriptChunks, interimText);
@@ -223,6 +225,7 @@ export function useVoiceSession() {
     analysisRef.current = null;
     setAnalysis(null);
     setActiveExtractionIndex(-1);
+    setUpdateFeedback(null);
   }
 
   function openApply() {
@@ -274,6 +277,7 @@ export function useVoiceSession() {
     } else {
       clearPendingTransitions();
       setActiveExtractionIndex(-1);
+      setUpdateFeedback(null);
     }
     setError(null);
     setRecordingState('requestingPermission');
@@ -395,10 +399,18 @@ export function useVoiceSession() {
       return;
     }
 
+    const previousAnalysis = analysisRef.current;
+    const shouldPreserveExisting = Boolean(preserveExistingRef.current && previousAnalysis);
     const mergedAnalysis =
-      preserveExistingRef.current && analysisRef.current
-        ? mergeResumeAnalysis(analysisRef.current, nextAnalysis)
+      shouldPreserveExisting && previousAnalysis
+        ? mergeResumeAnalysis(previousAnalysis, nextAnalysis)
         : nextAnalysis;
+
+    setUpdateFeedback(
+      shouldPreserveExisting && previousAnalysis
+        ? createResumeUpdateFeedback(previousAnalysis, nextAnalysis)
+        : null,
+    );
 
     analysisRef.current = mergedAnalysis;
     setAnalysis(mergedAnalysis);
@@ -451,6 +463,7 @@ export function useVoiceSession() {
     phase,
     recordingState,
     showSuccessToast,
+    updateFeedback,
     transcriptText,
     analysis,
     activeExtractionIndex,

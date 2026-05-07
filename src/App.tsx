@@ -8,18 +8,35 @@ import statusLeftSuccessSvg from './assets/status-left-success.svg';
 import statusRightFailureSvg from './assets/status-right-failure.svg';
 import statusRightSuccessSvg from './assets/status-right-success.svg';
 import voiceTagPng from './assets/voice-tag.png';
+import {
+  DEFAULT_POSITION_PICKER_CATEGORY_ID,
+  POSITION_PICKER_CATEGORIES,
+  findPositionPickerSelection,
+  getPositionPickerCategory,
+} from './data/positionPicker';
 import { useVoiceSession } from './hooks/useVoiceSession';
+import {
+  appendChatMessage,
+  settleChatMessages as settleChatMessageList,
+  type ChatMessage,
+} from './utils/chatMessages';
 import type { ResumeExtractionItem } from './types/speech';
 
-type ChatMessage = {
-  id: string;
-  role: 'assistant' | 'user';
-  text: string;
-  state: 'entering' | 'stable' | 'exiting';
+type EditableField = 'position';
+
+type ManualEdits = {
+  position: string | null;
+};
+
+type PositionPickerState = {
+  initialOption: string | null;
+  selectedCategoryId: string;
+  selectedOption: string | null;
 };
 
 const CHAT_LIMIT = 2;
 const CHAT_TRANSITION_MS = 220;
+const RECOGNIZING_CHAT_TEXT = '正在识别您的信息...';
 
 function PhoneShell({ children }: { children: ReactNode }) {
   const [scale, setScale] = useState(1);
@@ -86,6 +103,15 @@ function normalizeAgeDisplay(value: string) {
   return match?.[0] ?? '';
 }
 
+function resolvePositionPickerState(position: string): PositionPickerState {
+  const selection = findPositionPickerSelection(position);
+  return {
+    initialOption: selection?.option ?? null,
+    selectedCategoryId: selection?.categoryId ?? DEFAULT_POSITION_PICKER_CATEGORY_ID,
+    selectedOption: selection?.option ?? null,
+  };
+}
+
 function JobScreen({ onApply }: { onApply: () => void }) {
   return (
     <div className="relative h-full w-full overflow-hidden bg-white">
@@ -140,7 +166,15 @@ function ApplyScreen({
   onRetry,
   phoneText,
   positionText,
+  editingField,
   chatMessages,
+  onClosePositionPicker,
+  onConfirmPositionPicker,
+  onOpenPositionPicker,
+  onResetPositionPicker,
+  onSelectPositionCategory,
+  onSelectPositionOption,
+  positionPickerState,
 }: {
   activeExtractionIndex: number;
   ageText: string;
@@ -155,7 +189,15 @@ function ApplyScreen({
   onRetry: () => void;
   phoneText: string;
   positionText: string;
+  editingField: EditableField | null;
   chatMessages: ChatMessage[];
+  onClosePositionPicker: () => void;
+  onConfirmPositionPicker: () => void;
+  onOpenPositionPicker: () => void;
+  onResetPositionPicker: () => void;
+  onSelectPositionCategory: (categoryId: string) => void;
+  onSelectPositionOption: (option: string) => void;
+  positionPickerState: PositionPickerState;
 }) {
   const showExtracting = mode === 'extracting';
   const showReview = mode === 'review';
@@ -194,6 +236,8 @@ function ApplyScreen({
     !cityText ? '意向城市' : '',
     !ageText ? '年龄' : '',
   ].filter(Boolean);
+  const isPositionPickerOpen = editingField === 'position';
+  const selectedCategory = getPositionPickerCategory(positionPickerState.selectedCategoryId);
 
   return (
     <div className="absolute inset-0 z-30 overflow-hidden">
@@ -242,7 +286,15 @@ function ApplyScreen({
           <span>我的意向职位是</span>
           <span className="mb-[2px] block h-px min-w-0 flex-1 bg-[#d9dfe8]" />
           <span>。</span>
-          {showReview && positionText ? <span className="absolute left-[195px] top-0 text-[20px] font-medium leading-7 text-[#07d3a0]">{positionText}</span> : null}
+          {showReview && positionText ? (
+            <button
+              className="absolute left-[195px] top-0 text-[20px] font-medium leading-7 text-[#07d3a0]"
+              onClick={onOpenPositionPicker}
+              type="button"
+            >
+              {positionText}
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -339,22 +391,108 @@ function ApplyScreen({
           </button>
         </div>
       </div>
+
+      {isPositionPickerOpen ? (
+        <div className="absolute inset-0 z-40">
+          <button
+            aria-label="关闭意向职位选择"
+            className="absolute inset-0"
+            onClick={onClosePositionPicker}
+            type="button"
+          />
+          <div className="absolute bottom-0 left-0 h-[586px] w-[414px] overflow-hidden rounded-t-[18px] bg-white">
+            <div className="relative flex h-[52px] items-center justify-center border-b border-[#f0f0f0]">
+              <h2 className="m-0 text-[16px] font-medium leading-[22px] text-[#222222]">选择意向职位</h2>
+              <button
+                className="absolute right-[16px] top-[14px] text-[24px] leading-[24px] text-[#222222]"
+                onClick={onClosePositionPicker}
+                type="button"
+              >
+                ×
+              </button>
+            </div>
+            <div className="flex h-[446px]">
+              <div className="w-[190px] overflow-y-auto bg-[#ffffff]">
+                {POSITION_PICKER_CATEGORIES.map((category) => {
+                  const isSelected = category.id === selectedCategory.id;
+                  return (
+                    <button
+                      className={`flex h-[44px] w-full items-center px-[18px] text-left text-[15px] leading-[21px] ${
+                        isSelected ? 'bg-[#f7f7f7] text-[#ff3b66]' : 'text-[#222222]'
+                      }`}
+                      key={category.id}
+                      onClick={() => onSelectPositionCategory(category.id)}
+                      type="button"
+                    >
+                      {category.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex-1 overflow-y-auto bg-[#f7f7f7]">
+                {selectedCategory.options.map((option) => {
+                  const isSelected = option === positionPickerState.selectedOption;
+                  return (
+                    <button
+                      className="flex h-[44px] w-full items-center justify-between px-[18px] text-left text-[15px] leading-[21px] text-[#222222]"
+                      key={option}
+                      onClick={() => onSelectPositionOption(option)}
+                      type="button"
+                    >
+                      <span>{option}</span>
+                      <span
+                        className={`h-[16px] w-[16px] rounded-full border ${
+                          isSelected ? 'border-[#ff3b66] bg-[#ff3b66]' : 'border-[#d0d0d0] bg-white'
+                        }`}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="absolute bottom-[14px] left-[0] flex w-full items-center justify-center gap-[14px]">
+              <button
+                className="h-[44px] w-[156px] rounded-[22px] border border-[#d8d8d8] bg-white text-[16px] font-medium leading-[22px] text-[#222222]"
+                onClick={onResetPositionPicker}
+                type="button"
+              >
+                重置
+              </button>
+              <button
+                className="h-[44px] w-[156px] rounded-[22px] bg-[#ff3b66] text-[16px] font-medium leading-[22px] text-white"
+                disabled={!positionPickerState.selectedOption}
+                onClick={onConfirmPositionPicker}
+                type="button"
+              >
+                确定
+              </button>
+            </div>
+            <div className="absolute bottom-[6px] left-1/2 h-[5px] w-[134px] -translate-x-1/2 rounded-full bg-black" />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
 
 export default function App() {
-  const { actions, activeExtractionIndex, analysis, error, phase, transcriptText } = useVoiceSession();
+  const { actions, activeExtractionIndex, analysis, error, phase, transcriptText, updateFeedback } = useVoiceSession();
   const [overlayVisible, setOverlayVisible] = useState(false);
   const [overlayActive, setOverlayActive] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [manualEdits, setManualEdits] = useState<ManualEdits>({ position: null });
+  const [editingField, setEditingField] = useState<EditableField | null>(null);
+  const [positionPickerState, setPositionPickerState] = useState<PositionPickerState>(() =>
+    resolvePositionPickerState(''),
+  );
   const chatTimeoutRef = useRef<number | null>(null);
   const isDoneEnabled = transcriptText.trim().length > 0;
   const extractionItems = analysis?.extractionItems;
   const ageText = normalizeAgeDisplay(getDetectedValue(extractionItems, 'age'));
   const phoneText = getDetectedValue(extractionItems, 'phone');
   const cityText = getDetectedValue(extractionItems, 'city');
-  const positionText = getDetectedValue(extractionItems, 'position');
+  const detectedPositionText = getDetectedValue(extractionItems, 'position');
+  const positionText = manualEdits.position ?? detectedPositionText;
   const missingFieldLabels = [
     !phoneText ? '手机号' : '',
     !positionText ? '意向职位' : '',
@@ -380,51 +518,24 @@ export default function App() {
     }
 
     chatTimeoutRef.current = window.setTimeout(() => {
-      setChatMessages((current) =>
-        current
-          .filter((message) => message.state !== 'exiting')
-          .map((message) =>
-            message.state === 'entering' ? { ...message, state: 'stable' as const } : message,
-          )
-          .slice(-CHAT_LIMIT),
-      );
+      setChatMessages((current) => settleChatMessageList(current, CHAT_LIMIT));
       chatTimeoutRef.current = null;
     }, CHAT_TRANSITION_MS);
   }
 
-  function pushChatMessage(role: ChatMessage['role'], text: string) {
+  function pushChatMessage(
+    role: ChatMessage['role'],
+    text: string,
+    options?: { removeTexts?: string[] },
+  ) {
     setChatMessages((current) => {
-      if (role === 'user') {
-        const userIndex = current.findIndex((message) => message.role === 'user' && message.state !== 'exiting');
-        if (userIndex >= 0) {
-          const next = [...current];
-          next[userIndex] = { ...next[userIndex], text };
-          return next;
-        }
-      }
-
-      const activeMessages = current.filter((message) => message.state !== 'exiting');
-      const lastMessage = activeMessages[activeMessages.length - 1];
-      if (lastMessage?.role === role && lastMessage.text === text) {
-        return current;
-      }
-
-      const next = [...current];
-      if (activeMessages.length >= CHAT_LIMIT) {
-        const oldestIndex = next.findIndex((message) => message.state !== 'exiting');
-        if (oldestIndex >= 0) {
-          next[oldestIndex] = { ...next[oldestIndex], state: 'exiting' };
-        }
-      }
-
-      next.push({
+      return appendChatMessage(current, {
         id: `${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         role,
         text,
-        state: 'entering',
+        limit: CHAT_LIMIT,
+        removeTexts: options?.removeTexts,
       });
-
-      return next;
     });
 
     settleChatMessages();
@@ -474,21 +585,29 @@ export default function App() {
     }
 
     if (overlayMode === 'extracting') {
-      pushChatMessage('assistant', '正在识别您的信息...');
+      pushChatMessage('assistant', RECOGNIZING_CHAT_TEXT);
       return;
     }
 
     if (overlayMode === 'review') {
+      if (updateFeedback) {
+        pushChatMessage('assistant', updateFeedback, { removeTexts: [RECOGNIZING_CHAT_TEXT] });
+        return;
+      }
+
       const reviewText =
         missingFieldLabels.length > 0
           ? `您的${missingFieldLabels.join('、')}识别失败，请重说或点击上方信息填写吧`
           : '点击下方信息可手动修改';
-      pushChatMessage('assistant', reviewText);
+      pushChatMessage('assistant', reviewText, { removeTexts: [RECOGNIZING_CHAT_TEXT] });
     }
-  }, [error?.message, missingFieldLabels, overlayMode, overlayVisible, transcriptText]);
+  }, [error?.message, missingFieldLabels, overlayMode, overlayVisible, transcriptText, updateFeedback]);
 
   function startApplyFlow() {
     setOverlayVisible(true);
+    setManualEdits({ position: null });
+    setEditingField(null);
+    setPositionPickerState(resolvePositionPickerState(''));
     resetChatMessages();
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => setOverlayActive(true));
@@ -501,9 +620,12 @@ export default function App() {
   function closeApplyScreen() {
     actions.closeOverlay();
     setOverlayActive(false);
+    setEditingField(null);
     window.setTimeout(() => {
       setOverlayVisible(false);
       setChatMessages([]);
+      setManualEdits({ position: null });
+      setPositionPickerState(resolvePositionPickerState(''));
     }, 260);
   }
 
@@ -519,7 +641,77 @@ export default function App() {
   function handleConfirm() {
     actions.submitCard();
     setOverlayActive(false);
+    setEditingField(null);
     window.setTimeout(() => setOverlayVisible(false), 160);
+  }
+
+  function openPositionPicker() {
+    const nextState = resolvePositionPickerState(positionText);
+    setPositionPickerState(nextState);
+    setEditingField('position');
+  }
+
+  function closePositionPicker() {
+    setEditingField(null);
+  }
+
+  function resetPositionPicker() {
+    setPositionPickerState((current) => {
+      if (!current.initialOption) {
+        return {
+          ...current,
+          selectedCategoryId: DEFAULT_POSITION_PICKER_CATEGORY_ID,
+          selectedOption: null,
+        };
+      }
+
+      const selection = findPositionPickerSelection(current.initialOption);
+      return {
+        initialOption: current.initialOption,
+        selectedCategoryId: selection?.categoryId ?? DEFAULT_POSITION_PICKER_CATEGORY_ID,
+        selectedOption: current.initialOption,
+      };
+    });
+  }
+
+  function selectPositionCategory(categoryId: string) {
+    setPositionPickerState((current) => {
+      const category = getPositionPickerCategory(categoryId);
+      const selectedOption =
+        current.selectedOption && category.options.includes(current.selectedOption)
+          ? current.selectedOption
+          : null;
+
+      return {
+        ...current,
+        selectedCategoryId: categoryId,
+        selectedOption,
+      };
+    });
+  }
+
+  function selectPositionOption(option: string) {
+    setPositionPickerState((current) => ({
+      ...current,
+      selectedOption: option,
+    }));
+  }
+
+  function confirmPositionPicker() {
+    if (!positionPickerState.selectedOption) {
+      return;
+    }
+
+    const selectedPosition = positionPickerState.selectedOption;
+    const feedbackText =
+      selectedPosition === positionText ? '信息已保存' : '意向职位修改成功';
+
+    setManualEdits((current) => ({
+      ...current,
+      position: selectedPosition,
+    }));
+    setEditingField(null);
+    pushChatMessage('assistant', feedbackText);
   }
 
   return (
@@ -537,9 +729,17 @@ export default function App() {
           onConfirm={handleConfirm}
           onClose={closeApplyScreen}
           onDone={finishRecording}
+          editingField={editingField}
           onRetry={retryRecording}
+          onClosePositionPicker={closePositionPicker}
+          onConfirmPositionPicker={confirmPositionPicker}
+          onOpenPositionPicker={openPositionPicker}
+          onResetPositionPicker={resetPositionPicker}
+          onSelectPositionCategory={selectPositionCategory}
+          onSelectPositionOption={selectPositionOption}
           phoneText={phoneText}
           positionText={positionText}
+          positionPickerState={positionPickerState}
           chatMessages={chatMessages}
         />
       ) : null}
