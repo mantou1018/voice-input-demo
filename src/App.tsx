@@ -9,6 +9,14 @@ import statusRightFailureSvg from './assets/status-right-failure.svg';
 import statusRightSuccessSvg from './assets/status-right-success.svg';
 import voiceTagPng from './assets/voice-tag.png';
 import {
+  DEFAULT_CITY_PICKER_PROVINCE_ID,
+  CITY_PICKER_PROVINCES,
+  findCityPickerSelection,
+  formatCityPickerValue,
+  getCityPickerCity,
+  getCityPickerProvince,
+} from './data/cityPicker';
+import {
   DEFAULT_POSITION_PICKER_CATEGORY_ID,
   POSITION_PICKER_CATEGORIES,
   findPositionPickerSelection,
@@ -24,12 +32,24 @@ import { AGE_OPTIONS, normalizeAgeValue } from './utils/agePicker';
 import { isCompletePhoneNumber, normalizePhoneInput } from './utils/phoneInput';
 import type { ResumeExtractionItem } from './types/speech';
 
-type EditableField = 'age' | 'phone' | 'position';
+type EditableField = 'age' | 'city' | 'phone' | 'position';
 
 type ManualEdits = {
   age: string | null;
+  city: string | null;
   phone: string | null;
   position: string | null;
+};
+
+type CityPickerState = {
+  initialSelection: {
+    provinceId: string;
+    cityId: string;
+    districtId: string | null;
+  };
+  selectedProvinceId: string;
+  selectedCityId: string;
+  selectedDistrictId: string | null;
 };
 
 type PositionPickerState = {
@@ -161,6 +181,21 @@ function resolvePositionPickerState(position: string): PositionPickerState {
   };
 }
 
+function resolveCityPickerState(city: string): CityPickerState {
+  const selection = findCityPickerSelection(city) ?? {
+    provinceId: DEFAULT_CITY_PICKER_PROVINCE_ID,
+    cityId: getCityPickerProvince(DEFAULT_CITY_PICKER_PROVINCE_ID).cities[0]?.id ?? '',
+    districtId: null,
+  };
+
+  return {
+    initialSelection: selection,
+    selectedProvinceId: selection.provinceId,
+    selectedCityId: selection.cityId,
+    selectedDistrictId: selection.districtId,
+  };
+}
+
 function JobScreen({ onApply }: { onApply: () => void }) {
   return (
     <div className="relative h-full w-full overflow-hidden bg-white">
@@ -211,8 +246,10 @@ function ApplyScreen({
   mode,
   onClose,
   onConfirm,
+  onConfirmCityPicker,
   onDone,
   onRetry,
+  cityPickerState,
   selectedAge,
   phoneText,
   phoneInputValue,
@@ -220,6 +257,7 @@ function ApplyScreen({
   editingField,
   chatMessages,
   onCloseAgePicker,
+  onCloseCityPicker,
   onChangePhoneInput,
   onClosePhoneEditor,
   onClosePositionPicker,
@@ -227,10 +265,15 @@ function ApplyScreen({
   onConfirmPhoneEditor,
   onConfirmPositionPicker,
   onOpenAgePicker,
+  onOpenCityPicker,
   onOpenPhoneEditor,
   onOpenPositionPicker,
+  onResetCityPicker,
   onResetPositionPicker,
   onSelectAge,
+  onSelectCity,
+  onSelectDistrict,
+  onSelectProvince,
   onSelectPositionCategory,
   onSelectPositionOption,
   positionPickerState,
@@ -244,8 +287,10 @@ function ApplyScreen({
   mode: 'recording' | 'extracting' | 'review' | 'error';
   onClose: () => void;
   onConfirm: () => void;
+  onConfirmCityPicker: () => void;
   onDone: () => void;
   onRetry: () => void;
+  cityPickerState: CityPickerState;
   selectedAge: string;
   phoneText: string;
   phoneInputValue: string;
@@ -253,6 +298,7 @@ function ApplyScreen({
   editingField: EditableField | null;
   chatMessages: ChatMessage[];
   onCloseAgePicker: () => void;
+  onCloseCityPicker: () => void;
   onChangePhoneInput: (value: string) => void;
   onClosePhoneEditor: () => void;
   onClosePositionPicker: () => void;
@@ -260,10 +306,15 @@ function ApplyScreen({
   onConfirmPhoneEditor: () => void;
   onConfirmPositionPicker: () => void;
   onOpenAgePicker: () => void;
+  onOpenCityPicker: () => void;
   onOpenPhoneEditor: () => void;
   onOpenPositionPicker: () => void;
+  onResetCityPicker: () => void;
   onResetPositionPicker: () => void;
   onSelectAge: (age: string) => void;
+  onSelectCity: (cityId: string) => void;
+  onSelectDistrict: (districtId: string) => void;
+  onSelectProvince: (provinceId: string) => void;
   onSelectPositionCategory: (categoryId: string) => void;
   onSelectPositionOption: (option: string) => void;
   positionPickerState: PositionPickerState;
@@ -306,9 +357,12 @@ function ApplyScreen({
     !ageText ? '年龄' : '',
   ].filter(Boolean);
   const isAgePickerOpen = editingField === 'age';
+  const isCityPickerOpen = editingField === 'city';
   const isPhoneEditorOpen = editingField === 'phone';
   const isPositionPickerOpen = editingField === 'position';
   const isPhoneConfirmEnabled = isCompletePhoneNumber(phoneInputValue);
+  const selectedProvince = getCityPickerProvince(cityPickerState.selectedProvinceId);
+  const selectedCity = getCityPickerCity(cityPickerState.selectedProvinceId, cityPickerState.selectedCityId);
   const selectedCategory = getPositionPickerCategory(positionPickerState.selectedCategoryId);
 
   return (
@@ -335,6 +389,12 @@ function ApplyScreen({
       <div className={`overlay-content absolute left-[56px] top-[258px] w-[310px] text-[#666666] ${isActive ? 'overlay-content--active' : ''}`}>
         <div className="relative flex items-end gap-1 text-[20px] leading-7">
           <span>我今年</span>
+          <button
+            aria-label="编辑年龄"
+            className="absolute left-[66px] top-0 h-[28px] w-[44px]"
+            onClick={onOpenAgePicker}
+            type="button"
+          />
           <span className="mb-[2px] block h-px w-[35px] bg-[#d9dfe8]" />
           <span>岁，</span>
           {showReview && ageText ? (
@@ -349,6 +409,12 @@ function ApplyScreen({
         </div>
         <div className="relative mt-6 flex items-end gap-1 text-[20px] leading-7">
           <span>我的手机号是</span>
+          <button
+            aria-label="编辑手机号"
+            className="absolute left-[138px] top-0 h-[28px] w-[170px]"
+            onClick={onOpenPhoneEditor}
+            type="button"
+          />
           <span className="mb-[2px] block h-px min-w-0 flex-1 bg-[#d9dfe8]" />
           <span>，</span>
           {showReview && phoneText ? (
@@ -363,15 +429,35 @@ function ApplyScreen({
         </div>
         <div className="relative mt-6 flex items-end gap-1 text-[20px] leading-7">
           <span>我的意向城市是</span>
+          <button
+            aria-label="编辑意向城市"
+            className="absolute left-[152px] top-0 h-[28px] w-[156px]"
+            onClick={onOpenCityPicker}
+            type="button"
+          />
           <span className="mb-[2px] block h-px min-w-0 flex-1 bg-[#d9dfe8]" />
           <span>，</span>
           {!showReview ? (
             <span className="absolute left-[151px] top-1 text-[14px] leading-5 text-[#c6c6c6]">市/区/县（最多3个）</span>
           ) : null}
-          {showReview && cityText ? <span className="absolute left-[165px] top-0 text-[20px] font-medium leading-7 text-[#07d3a0]">{cityText}</span> : null}
+          {showReview && cityText ? (
+            <button
+              className="absolute left-[165px] top-0 text-[20px] font-medium leading-7 text-[#07d3a0]"
+              onClick={onOpenCityPicker}
+              type="button"
+            >
+              {cityText}
+            </button>
+          ) : null}
         </div>
         <div className="relative mt-6 flex items-end gap-1 text-[20px] leading-7">
           <span>我的意向职位是</span>
+          <button
+            aria-label="编辑意向职位"
+            className="absolute left-[191px] top-0 h-[28px] w-[118px]"
+            onClick={onOpenPositionPicker}
+            type="button"
+          />
           <span className="mb-[2px] block h-px min-w-0 flex-1 bg-[#d9dfe8]" />
           <span>。</span>
           {showReview && positionText ? (
@@ -595,6 +681,103 @@ function ApplyScreen({
         </div>
       ) : null}
 
+      {isCityPickerOpen ? (
+        <div className="absolute inset-0 z-40">
+          <button
+            aria-label="关闭城市选择"
+            className="absolute inset-0"
+            onClick={onCloseCityPicker}
+            type="button"
+          />
+          <div className="absolute bottom-0 left-0 h-[586px] w-[414px] overflow-hidden rounded-t-[18px] bg-white">
+            <div className="relative flex h-[52px] items-center justify-center border-b border-[#f0f0f0]">
+              <h2 className="m-0 text-[16px] font-medium leading-[22px] text-[#222222]">选择意向城市</h2>
+              <button
+                className="absolute right-[16px] top-[14px] text-[24px] leading-[24px] text-[#222222]"
+                onClick={onCloseCityPicker}
+                type="button"
+              >
+                ×
+              </button>
+            </div>
+            <div className="flex h-[446px]">
+              <div className="w-[138px] overflow-y-auto bg-[#ffffff]">
+                {CITY_PICKER_PROVINCES.map((province) => {
+                  const isSelected = province.id === selectedProvince.id;
+                  return (
+                    <button
+                      className={`flex h-[44px] w-full items-center px-[18px] text-left text-[15px] leading-[21px] ${
+                        isSelected ? 'bg-[#f7f7f7] text-[#ff3b66]' : 'text-[#222222]'
+                      }`}
+                      key={province.id}
+                      onClick={() => onSelectProvince(province.id)}
+                      type="button"
+                    >
+                      {province.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="w-[138px] overflow-y-auto bg-[#f7f7f7]">
+                {selectedProvince.cities.map((city) => {
+                  const isSelected = city.id === selectedCity.id;
+                  return (
+                    <button
+                      className={`flex h-[44px] w-full items-center px-[18px] text-left text-[15px] leading-[21px] ${
+                        isSelected ? 'bg-white text-[#ff3b66]' : 'text-[#222222]'
+                      }`}
+                      key={city.id}
+                      onClick={() => onSelectCity(city.id)}
+                      type="button"
+                    >
+                      {city.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex-1 overflow-y-auto bg-white">
+                {selectedCity.districts.map((district) => {
+                  const isSelected = district.id === cityPickerState.selectedDistrictId;
+                  return (
+                    <button
+                      className="flex h-[44px] w-full items-center justify-between px-[18px] text-left text-[15px] leading-[21px] text-[#222222]"
+                      key={district.id}
+                      onClick={() => onSelectDistrict(district.id)}
+                      type="button"
+                    >
+                      <span>{district.label}</span>
+                      <span
+                        className={`h-[16px] w-[16px] rounded-full border ${
+                          isSelected ? 'border-[#ff3b66] bg-[#ff3b66]' : 'border-[#d0d0d0] bg-white'
+                        }`}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="absolute bottom-[14px] left-[0] flex w-full items-center justify-center gap-[14px]">
+              <button
+                className="h-[44px] w-[156px] rounded-[22px] border border-[#d8d8d8] bg-white text-[16px] font-medium leading-[22px] text-[#222222]"
+                onClick={onResetCityPicker}
+                type="button"
+              >
+                重置
+              </button>
+              <button
+                className="h-[44px] w-[156px] rounded-[22px] bg-[#ff3b66] text-[16px] font-medium leading-[22px] text-white"
+                disabled={!cityPickerState.selectedDistrictId}
+                onClick={onConfirmCityPicker}
+                type="button"
+              >
+                确定
+              </button>
+            </div>
+            <div className="absolute bottom-[6px] left-1/2 h-[5px] w-[134px] -translate-x-1/2 rounded-full bg-black" />
+          </div>
+        </div>
+      ) : null}
+
       {isPhoneEditorOpen ? (
         <div className="absolute inset-0 z-40">
           <button
@@ -663,8 +846,11 @@ export default function App() {
   const [overlayVisible, setOverlayVisible] = useState(false);
   const [overlayActive, setOverlayActive] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [manualEdits, setManualEdits] = useState<ManualEdits>({ age: null, phone: null, position: null });
+  const [manualEdits, setManualEdits] = useState<ManualEdits>({ age: null, city: null, phone: null, position: null });
   const [editingField, setEditingField] = useState<EditableField | null>(null);
+  const [cityPickerState, setCityPickerState] = useState<CityPickerState>(() =>
+    resolveCityPickerState(''),
+  );
   const [selectedAge, setSelectedAge] = useState('');
   const [phoneInputValue, setPhoneInputValue] = useState('');
   const [positionPickerState, setPositionPickerState] = useState<PositionPickerState>(() =>
@@ -677,7 +863,8 @@ export default function App() {
   const ageText = manualEdits.age ?? detectedAgeText;
   const detectedPhoneText = getDetectedValue(extractionItems, 'phone');
   const phoneText = manualEdits.phone ?? detectedPhoneText;
-  const cityText = getDetectedValue(extractionItems, 'city');
+  const detectedCityText = getDetectedValue(extractionItems, 'city');
+  const cityText = manualEdits.city ?? detectedCityText;
   const detectedPositionText = getDetectedValue(extractionItems, 'position');
   const positionText = manualEdits.position ?? detectedPositionText;
   const missingFieldLabels = [
@@ -792,8 +979,9 @@ export default function App() {
 
   function startApplyFlow() {
     setOverlayVisible(true);
-    setManualEdits({ age: null, phone: null, position: null });
+    setManualEdits({ age: null, city: null, phone: null, position: null });
     setEditingField(null);
+    setCityPickerState(resolveCityPickerState(''));
     setSelectedAge('');
     setPhoneInputValue('');
     setPositionPickerState(resolvePositionPickerState(''));
@@ -813,7 +1001,8 @@ export default function App() {
     window.setTimeout(() => {
       setOverlayVisible(false);
       setChatMessages([]);
-      setManualEdits({ age: null, phone: null, position: null });
+      setManualEdits({ age: null, city: null, phone: null, position: null });
+      setCityPickerState(resolveCityPickerState(''));
       setSelectedAge('');
       setPhoneInputValue('');
       setPositionPickerState(resolvePositionPickerState(''));
@@ -859,6 +1048,70 @@ export default function App() {
     setManualEdits((current) => ({
       ...current,
       age: selectedAge,
+    }));
+    setEditingField(null);
+    pushChatMessage('assistant', feedbackText);
+  }
+
+  function openCityPicker() {
+    setCityPickerState(resolveCityPickerState(cityText));
+    setEditingField('city');
+  }
+
+  function closeCityPicker() {
+    setEditingField(null);
+  }
+
+  function selectProvince(provinceId: string) {
+    const province = getCityPickerProvince(provinceId);
+    const firstCity = province.cities[0];
+    setCityPickerState((current) => ({
+      ...current,
+      selectedProvinceId: provinceId,
+      selectedCityId: firstCity?.id ?? '',
+      selectedDistrictId: firstCity?.districts[0]?.id ?? null,
+    }));
+  }
+
+  function selectCity(cityId: string) {
+    const city = getCityPickerCity(cityPickerState.selectedProvinceId, cityId);
+    setCityPickerState((current) => ({
+      ...current,
+      selectedCityId: cityId,
+      selectedDistrictId:
+        current.selectedDistrictId && city.districts.some((district) => district.id === current.selectedDistrictId)
+          ? current.selectedDistrictId
+          : city.districts[0]?.id ?? null,
+    }));
+  }
+
+  function selectDistrict(districtId: string) {
+    setCityPickerState((current) => ({
+      ...current,
+      selectedDistrictId: districtId,
+    }));
+  }
+
+  function resetCityPicker() {
+    setCityPickerState((current) => ({
+      initialSelection: current.initialSelection,
+      selectedProvinceId: current.initialSelection.provinceId,
+      selectedCityId: current.initialSelection.cityId,
+      selectedDistrictId: current.initialSelection.districtId,
+    }));
+  }
+
+  function confirmCityPicker() {
+    const nextValue = formatCityPickerValue(
+      cityPickerState.selectedProvinceId,
+      cityPickerState.selectedCityId,
+      cityPickerState.selectedDistrictId,
+    );
+    const feedbackText = nextValue === cityText ? '信息已保存' : '意向城市修改成功';
+
+    setManualEdits((current) => ({
+      ...current,
+      city: nextValue,
     }));
     setEditingField(null);
     pushChatMessage('assistant', feedbackText);
@@ -974,12 +1227,15 @@ export default function App() {
           isDoneEnabled={isDoneEnabled}
           mode={overlayMode}
           onConfirm={handleConfirm}
+          onConfirmCityPicker={confirmCityPicker}
           onClose={closeApplyScreen}
           onDone={finishRecording}
+          cityPickerState={cityPickerState}
           editingField={editingField}
           onRetry={retryRecording}
           selectedAge={selectedAge}
           onCloseAgePicker={closeAgePicker}
+          onCloseCityPicker={closeCityPicker}
           onChangePhoneInput={changePhoneInput}
           onClosePhoneEditor={closePhoneEditor}
           onClosePositionPicker={closePositionPicker}
@@ -987,10 +1243,15 @@ export default function App() {
           onConfirmPhoneEditor={confirmPhoneEditor}
           onConfirmPositionPicker={confirmPositionPicker}
           onOpenAgePicker={openAgePicker}
+          onOpenCityPicker={openCityPicker}
           onOpenPhoneEditor={openPhoneEditor}
           onOpenPositionPicker={openPositionPicker}
+          onResetCityPicker={resetCityPicker}
           onResetPositionPicker={resetPositionPicker}
           onSelectAge={selectAge}
+          onSelectCity={selectCity}
+          onSelectDistrict={selectDistrict}
+          onSelectProvince={selectProvince}
           onSelectPositionCategory={selectPositionCategory}
           onSelectPositionOption={selectPositionOption}
           phoneInputValue={phoneInputValue}
