@@ -26,19 +26,19 @@ describe('appendChatMessage', () => {
   it('removes transitional messages before appending the final feedback', () => {
     const messages = [
       message('user-1', '我想改职位'),
-      message('loading-1', '正在识别您的信息...'),
+      message('loading-1', '正在整理报名信息...'),
     ];
     const next = appendChatMessage(messages, {
       role: 'assistant',
-      text: '点击下方信息可手动修改',
+      text: '信息整理好了，确认无误后就可以报名。',
       limit: 2,
       id: 'review-1',
-      removeTexts: ['正在识别您的信息...'],
+      removeTexts: ['正在整理报名信息...'],
     });
 
     expect(next.map((item) => item.text)).toEqual([
       '我想改职位',
-      '点击下方信息可手动修改',
+      '信息整理好了，确认无误后就可以报名。',
     ]);
   });
 });

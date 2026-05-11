@@ -33,12 +33,13 @@ function createUnsupportedError(): SpeechRecognizerError {
 function createEmptyTranscriptError(): SpeechRecognizerError {
   return {
     code: 'no-speech',
-    message: '没有识别到有效语音，请按住按钮后再说一遍。',
+    message: '刚才没听清。请再说一次，或手动填写。',
     recoverable: true,
   };
 }
 
 const STOP_GRACE_PERIOD_MS = 380;
+const AUTO_SEND_SILENCE_MS = 4000;
 
 function mergeResumeAnalysis(previous: ResumeAnalysis, next: ResumeAnalysis): ResumeAnalysis {
   const previousItems = new Map(previous.extractionItems.map((item) => [item.id, item]));
@@ -70,6 +71,7 @@ export function useVoiceSession() {
   const recognitionRunTokenRef = useRef(0);
   const successToastTimeoutRef = useRef<number | null>(null);
   const stopGraceTimeoutRef = useRef<number | null>(null);
+  const autoSendTimeoutRef = useRef<number | null>(null);
 
   const [phase, setPhase] = useState<VoiceApplyPhase>('job');
   const [recordingState, setRecordingState] = useState<RecordingSessionState>('idle');
@@ -95,6 +97,7 @@ export function useVoiceSession() {
     return () => {
       clearPendingTransitions();
       clearStopGraceTimeout();
+      clearAutoSendTimeout();
       if (successToastTimeoutRef.current) {
         window.clearTimeout(successToastTimeoutRef.current);
       }
@@ -129,6 +132,21 @@ export function useVoiceSession() {
   }, [phase]);
 
   useEffect(() => {
+    clearAutoSendTimeout();
+
+    if (phase !== 'recording' || recordingState !== 'recording') {
+      return;
+    }
+
+    autoSendTimeoutRef.current = window.setTimeout(() => {
+      autoSendTimeoutRef.current = null;
+      finishHoldToTalk(false);
+    }, AUTO_SEND_SILENCE_MS);
+
+    return () => clearAutoSendTimeout();
+  }, [phase, recordingState, transcriptText]);
+
+  useEffect(() => {
     const adapter = adapterRef.current;
 
     const teardownResult = adapter.onResult((snapshot) => {
@@ -147,7 +165,7 @@ export function useVoiceSession() {
           ? {
               code: 'unsupported' as const,
               message:
-                '麦克风权限已经开启，但当前手机浏览器/内嵌环境不支持语音识别。请改用系统浏览器打开。',
+                '当前手机浏览器/内嵌环境不支持语音识别。请改用系统浏览器打开。',
               recoverable: true,
             }
           : nextError;
@@ -215,6 +233,15 @@ export function useVoiceSession() {
     stopGraceTimeoutRef.current = null;
   }
 
+  function clearAutoSendTimeout() {
+    if (!autoSendTimeoutRef.current) {
+      return;
+    }
+
+    window.clearTimeout(autoSendTimeoutRef.current);
+    autoSendTimeoutRef.current = null;
+  }
+
   function scheduleTransition(delayMs: number, callback: () => void) {
     const timeoutId = window.setTimeout(callback, delayMs);
     pendingTimeoutsRef.current.push(timeoutId);
@@ -246,6 +273,7 @@ export function useVoiceSession() {
     ignoreAbortErrorRef.current = true;
     finalizeOnStopRef.current = false;
     clearStopGraceTimeout();
+    clearAutoSendTimeout();
     adapterRef.current.abort();
     resetTranscript();
     setCard(null);
@@ -303,7 +331,7 @@ export function useVoiceSession() {
         code: 'permission-denied',
         message: microphoneGrantedRef.current
           ? '当前浏览器环境限制了语音识别，请改用系统浏览器打开后继续补充。'
-          : '麦克风权限申请失败，请允许麦克风访问后继续补充。',
+          : '暂时不能语音输入。你可以再试一次，或直接手动填写。',
         recoverable: true,
       });
       setRecordingState('error');
@@ -316,6 +344,7 @@ export function useVoiceSession() {
     ignoreAbortErrorRef.current = true;
     finalizeOnStopRef.current = false;
     clearStopGraceTimeout();
+    clearAutoSendTimeout();
     adapterRef.current.abort();
     resetTranscript();
     if (!preserveExistingRef.current) {
@@ -348,6 +377,7 @@ export function useVoiceSession() {
 
     finalizeOnStopRef.current = true;
     setRecordingState('recognizing');
+    clearAutoSendTimeout();
     clearStopGraceTimeout();
     stopGraceTimeoutRef.current = window.setTimeout(() => {
       stopGraceTimeoutRef.current = null;
@@ -372,6 +402,7 @@ export function useVoiceSession() {
     setRecordingState('summarizing');
     setPhase('extracting');
     setActiveExtractionIndex(-1);
+    clearAutoSendTimeout();
     clearPendingTransitions();
 
     let nextAnalysis: ResumeAnalysis;
@@ -440,6 +471,7 @@ export function useVoiceSession() {
     }
 
     clearStopGraceTimeout();
+    clearAutoSendTimeout();
     setHasApplied(true);
     setShowSuccessToast(true);
     setPhase('job');

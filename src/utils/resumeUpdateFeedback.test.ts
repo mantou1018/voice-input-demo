@@ -27,13 +27,13 @@ describe('createResumeUpdateFeedback', () => {
     const previous = createAnalysis({ age: '25', city: '北京', position: '保安', phone: '13800138000' });
     const next = createAnalysis({ age: '25', city: '上海', position: '保安', phone: '13800138000' });
 
-    expect(createResumeUpdateFeedback(previous, next)).toBe('意向城市已修改');
+    expect(createResumeUpdateFeedback(previous, next)).toBe('意向城市已更新为上海。');
   });
 
   it('reports saved when supplemental recognition keeps the existing information', () => {
     const previous = createAnalysis({ age: '25', city: '北京', position: '保安', phone: '13800138000' });
     const next = createAnalysis({ age: '25', city: '北京', position: '保安', phone: '13800138000' });
 
-    expect(createResumeUpdateFeedback(previous, next)).toBe('信息已保存');
+    expect(createResumeUpdateFeedback(previous, next)).toBe('已听到的信息会保留，你只需要补充没听清的内容。');
   });
 });

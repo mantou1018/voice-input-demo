@@ -11,22 +11,27 @@ function getItemValue(items: ResumeExtractionItem[], id: string) {
   return items.find((item) => item.id === id)?.value.trim() ?? '';
 }
 
+function formatItemUpdate(item: ResumeExtractionItem) {
+  const label = FIELD_LABELS[item.id] ?? item.label;
+  const value = item.value.trim();
+  return value ? `${label}已更新为${value}` : `${label}已更新`;
+}
+
 export function createResumeUpdateFeedback(
   previous: ResumeAnalysis,
   next: ResumeAnalysis,
 ) {
-  const changedLabels = next.extractionItems
+  const changedItems = next.extractionItems
     .filter((item) => item.detected)
-    .filter((item) => getItemValue(previous.extractionItems, item.id) !== item.value.trim())
-    .map((item) => FIELD_LABELS[item.id] ?? item.label);
+    .filter((item) => getItemValue(previous.extractionItems, item.id) !== item.value.trim());
 
-  if (!changedLabels.length) {
-    return '信息已保存';
+  if (!changedItems.length) {
+    return '已听到的信息会保留，你只需要补充没听清的内容。';
   }
 
-  if (changedLabels.length === 1) {
-    return `${changedLabels[0]}已修改`;
+  if (changedItems.length === 1) {
+    return `${formatItemUpdate(changedItems[0])}。`;
   }
 
-  return `${changedLabels.join('、')}已修改`;
+  return `${changedItems.map(formatItemUpdate).join('，')}。`;
 }

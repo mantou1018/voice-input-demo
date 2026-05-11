@@ -63,7 +63,7 @@ function mapNativeError(error: string): SpeechRecognizerError {
     case 'not-allowed':
       return {
         code: 'permission-denied',
-        message: '语音识别未被允许，请检查麦克风权限或切换到系统浏览器后重试。',
+        message: '暂时不能语音输入，请稍后重试或切换到系统浏览器。',
         recoverable: true,
       };
     case 'service-not-allowed':
@@ -75,13 +75,13 @@ function mapNativeError(error: string): SpeechRecognizerError {
     case 'no-speech':
       return {
         code: 'no-speech',
-        message: '没有识别到有效语音，请靠近麦克风后重新录制。',
+        message: '没有识别到有效语音，请再说一次。',
         recoverable: true,
       };
     case 'audio-capture':
       return {
         code: 'audio-capture',
-        message: '未检测到可用麦克风，请检查系统录音设备。',
+        message: '暂时没有听到声音，请再试一次。',
         recoverable: true,
       };
     case 'network':

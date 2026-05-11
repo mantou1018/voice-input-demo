@@ -1,16 +1,17 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import closeIconPng from './assets/close-icon.png';
-import doneCheckSvg from './assets/done-check.svg';
-import jobDetailBgPng from './assets/job-detail-bg.png';
-import listeningStarSvg from './assets/listening-star.svg';
-import micIconPng from './assets/mic-icon.png';
-import statusLeftSuccessSvg from './assets/status-left-success.svg';
-import statusRightFailureSvg from './assets/status-right-failure.svg';
-import statusRightSuccessSvg from './assets/status-right-success.svg';
-import voiceTagPng from './assets/voice-tag.png';
+import { useEffect, useRef, useState } from 'react';
+import { ApplyScreen } from './components/voiceApply/ApplyScreen';
+import { JobScreen } from './components/voiceApply/JobScreen';
+import { PhoneShell } from './components/voiceApply/PhoneShell';
+import { SuccessScreen } from './components/voiceApply/SuccessScreen';
+import type {
+  ApplyMode,
+  CityPickerState,
+  EditableField,
+  ManualEdits,
+  PositionPickerState,
+} from './components/voiceApply/types';
 import {
   DEFAULT_CITY_PICKER_PROVINCE_ID,
-  CITY_PICKER_PROVINCES,
   findCityPickerSelection,
   formatCityPickerValue,
   getCityPickerCity,
@@ -18,149 +19,28 @@ import {
 } from './data/cityPicker';
 import {
   DEFAULT_POSITION_PICKER_CATEGORY_ID,
-  POSITION_PICKER_CATEGORIES,
   findPositionPickerSelection,
   getPositionPickerCategory,
 } from './data/positionPicker';
 import { useVoiceSession } from './hooks/useVoiceSession';
+import type { ResumeExtractionItem } from './types/speech';
+import { normalizeAgeValue } from './utils/agePicker';
 import {
   appendChatMessage,
   settleChatMessages as settleChatMessageList,
   type ChatMessage,
 } from './utils/chatMessages';
-import { AGE_OPTIONS, normalizeAgeValue } from './utils/agePicker';
 import { isCompletePhoneNumber, normalizePhoneInput } from './utils/phoneInput';
-import type { ResumeExtractionItem } from './types/speech';
-
-type EditableField = 'age' | 'city' | 'phone' | 'position';
-
-type ManualEdits = {
-  age: string | null;
-  city: string | null;
-  phone: string | null;
-  position: string | null;
-};
-
-type CityPickerState = {
-  initialSelection: {
-    provinceId: string;
-    cityId: string;
-    districtId: string | null;
-  };
-  selectedProvinceId: string;
-  selectedCityId: string;
-  selectedDistrictId: string | null;
-};
-
-type PositionPickerState = {
-  initialOption: string | null;
-  selectedCategoryId: string;
-  selectedOption: string | null;
-};
+import {
+  createErrorPrompt,
+  createManualEditFeedback,
+  createRecordingPrompt,
+  createReviewPrompt,
+  RECOGNIZING_CHAT_TEXT,
+} from './utils/resumeAssistantPrompts';
 
 const CHAT_LIMIT = 2;
 const CHAT_TRANSITION_MS = 220;
-const RECOGNIZING_CHAT_TEXT = '正在识别您的信息...';
-
-function PhoneShell({ children }: { children: ReactNode }) {
-  const [scale, setScale] = useState(1);
-
-  useEffect(() => {
-    const updateScale = () => {
-      const horizontalScale = (window.innerWidth - 32) / 414;
-      const verticalScale = (window.innerHeight - 32) / 896;
-      setScale(Math.min(1, horizontalScale, verticalScale));
-    };
-
-    updateScale();
-    window.addEventListener('resize', updateScale);
-    return () => window.removeEventListener('resize', updateScale);
-  }, []);
-
-  return (
-    <div className="flex min-h-screen items-center justify-center overflow-auto bg-black p-4">
-      <div
-        className="relative h-[896px] w-[414px] origin-center overflow-hidden rounded-[32px] bg-white shadow-[0_24px_90px_rgba(0,0,0,0.45)]"
-        style={{ transform: `scale(${scale})` }}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function HomeIndicator() {
-  return <div className="absolute left-[140.55px] top-[84px] h-[5px] w-[134px] rounded-full bg-black" />;
-}
-
-function AssistantBubble({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex items-start gap-[8px]">
-      <img alt="" className="h-[24px] w-[24px]" src={listeningStarSvg} />
-      <div className="max-w-[326px] rounded-bl-[12px] rounded-br-[12px] rounded-tl-[2px] rounded-tr-[12px] bg-[#ffffff] px-[12px] py-[10px]">
-        <div className="text-[17px] leading-[27px] text-[#222222]">{children}</div>
-      </div>
-    </div>
-  );
-}
-
-function UserBubble({ text }: { text: string }) {
-  return (
-    <div className="flex w-full justify-end">
-      <div
-        className="inline-flex max-w-[350px] rounded-bl-[16px] rounded-br-[16px] rounded-tl-[16px] rounded-tr-[2px] px-[16px] py-[12px]"
-        style={{ backgroundImage: 'linear-gradient(93.86189773488236deg, rgb(128, 244, 255) 38.2%, rgb(124, 248, 217) 76.432%)' }}
-      >
-        <p className="m-0 break-words text-[17px] leading-[24px] text-[#1a1f28]">{text}</p>
-      </div>
-    </div>
-  );
-}
-
-function AgeWheelPicker({
-  onSelectAge,
-  selectedAge,
-}: {
-  onSelectAge: (age: string) => void;
-  selectedAge: string;
-}) {
-  const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-
-  useEffect(() => {
-    const selectedItem = itemRefs.current[selectedAge];
-    selectedItem?.scrollIntoView({ block: 'center' });
-  }, [selectedAge]);
-
-  return (
-    <div className="relative h-[214px] overflow-hidden bg-white">
-      <div className="pointer-events-none absolute left-0 right-0 top-0 z-10 h-[64px] bg-[linear-gradient(180deg,#ffffff_0%,rgba(255,255,255,0)_100%)]" />
-      <div className="pointer-events-none absolute left-0 right-0 top-1/2 z-10 h-[64px] -translate-y-1/2 border-y border-[#e0e0e0]" />
-      <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 h-[64px] bg-[linear-gradient(0deg,#ffffff_0%,rgba(255,255,255,0)_100%)]" />
-      <div className="h-full snap-y snap-mandatory overflow-y-auto py-[75px] [-webkit-overflow-scrolling:touch]">
-        {AGE_OPTIONS.map((age) => {
-          const isSelected = age === selectedAge;
-          return (
-            <button
-              className={`relative z-20 flex h-[64px] w-full snap-center items-center justify-center transition-colors ${
-                isSelected
-                  ? 'text-[20px] font-medium leading-[28px] text-black'
-                  : 'text-[16px] font-normal leading-[22px] text-[#666666]'
-              }`}
-              key={age}
-              onClick={() => onSelectAge(age)}
-              ref={(node) => {
-                itemRefs.current[age] = node;
-              }}
-              type="button"
-            >
-              {age}岁
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 function getDetectedValue(items: ResumeExtractionItem[] | null | undefined, id: string) {
   const item = items?.find((entry) => entry.id === id);
@@ -196,657 +76,27 @@ function resolveCityPickerState(city: string): CityPickerState {
   };
 }
 
-function JobScreen({ onApply }: { onApply: () => void }) {
-  return (
-    <div className="relative h-full w-full overflow-hidden bg-white">
-      <img alt="" className="absolute inset-0 h-full w-full" src={jobDetailBgPng} />
-
-      <img
-        alt="语音简历"
-        className="pointer-events-none absolute left-[343px] top-[796px] z-20 h-[20px] w-[52px]"
-        src={voiceTagPng}
-      />
-
-      <div className="absolute bottom-0 left-0 h-[98px] w-[414px]">
-        <div className="absolute inset-0 bg-white" />
-        <div className="absolute left-0 top-[64px] h-[34px] w-[414px] bg-white" />
-        <div className="absolute left-0 top-0 h-px w-[414px] bg-[#eaeaea]" />
-        <div className="absolute left-[19px] top-[8px] flex gap-4">
-          <button
-            className="h-[48px] w-[122px] rounded-[45px] bg-[#ffeff4] text-[15px] font-medium leading-[21px] text-[#fe3666]"
-            type="button"
-          >
-            在线聊
-          </button>
-          <button
-            className="relative h-[48px] w-[238px] rounded-[45px] bg-[#fe3666]"
-            data-testid="apply-voice-button"
-            onClick={onApply}
-            type="button"
-          >
-            <img alt="" aria-hidden="true" className="absolute left-[77px] top-[14px] h-[20px] w-[20px]" src={micIconPng} />
-            <span className="absolute left-[101px] top-[13.5px] text-[15px] font-medium leading-[21px] text-white">
-              说话报名
-            </span>
-          </button>
-        </div>
-        <HomeIndicator />
-      </div>
-    </div>
-  );
-}
-
-function ApplyScreen({
-  activeExtractionIndex,
-  ageText,
-  cityText,
-  isConfirmEnabled,
-  isActive,
-  isDoneEnabled,
-  mode,
-  onClose,
-  onConfirm,
-  onConfirmCityPicker,
-  onDone,
-  onRetry,
-  cityPickerState,
-  selectedAge,
-  phoneText,
-  phoneInputValue,
-  positionText,
-  editingField,
-  chatMessages,
-  onCloseAgePicker,
-  onCloseCityPicker,
-  onChangePhoneInput,
-  onClosePhoneEditor,
-  onClosePositionPicker,
-  onConfirmAgePicker,
-  onConfirmPhoneEditor,
-  onConfirmPositionPicker,
-  onOpenAgePicker,
-  onOpenCityPicker,
-  onOpenPhoneEditor,
-  onOpenPositionPicker,
-  onResetCityPicker,
-  onResetPositionPicker,
-  onSelectAge,
-  onSelectCity,
-  onSelectDistrict,
-  onSelectProvince,
-  onSelectPositionCategory,
-  onSelectPositionOption,
-  positionPickerState,
-}: {
-  activeExtractionIndex: number;
-  ageText: string;
-  cityText: string;
-  isConfirmEnabled: boolean;
-  isActive: boolean;
-  isDoneEnabled: boolean;
-  mode: 'recording' | 'extracting' | 'review' | 'error';
-  onClose: () => void;
-  onConfirm: () => void;
-  onConfirmCityPicker: () => void;
-  onDone: () => void;
-  onRetry: () => void;
-  cityPickerState: CityPickerState;
-  selectedAge: string;
-  phoneText: string;
-  phoneInputValue: string;
-  positionText: string;
-  editingField: EditableField | null;
-  chatMessages: ChatMessage[];
-  onCloseAgePicker: () => void;
-  onCloseCityPicker: () => void;
-  onChangePhoneInput: (value: string) => void;
-  onClosePhoneEditor: () => void;
-  onClosePositionPicker: () => void;
-  onConfirmAgePicker: () => void;
-  onConfirmPhoneEditor: () => void;
-  onConfirmPositionPicker: () => void;
-  onOpenAgePicker: () => void;
-  onOpenCityPicker: () => void;
-  onOpenPhoneEditor: () => void;
-  onOpenPositionPicker: () => void;
-  onResetCityPicker: () => void;
-  onResetPositionPicker: () => void;
-  onSelectAge: (age: string) => void;
-  onSelectCity: (cityId: string) => void;
-  onSelectDistrict: (districtId: string) => void;
-  onSelectProvince: (provinceId: string) => void;
-  onSelectPositionCategory: (categoryId: string) => void;
-  onSelectPositionOption: (option: string) => void;
-  positionPickerState: PositionPickerState;
-}) {
-  const showExtracting = mode === 'extracting';
-  const showReview = mode === 'review';
-  const showError = mode === 'error';
-  const hasFormContent =
-    ageText.trim().length > 0 ||
-    phoneText.trim().length > 0 ||
-    cityText.trim().length > 0 ||
-    positionText.trim().length > 0;
-  const headingTitle = hasFormContent ? '请确认您的信息' : '您可以这样对我说';
-  const headingSubtitle = hasFormContent
-    ? '点击上方信息可手动修改'
-    : '完善您的简历';
-  const secondaryButtonLabel = '重说';
-  const secondaryButtonClick = onRetry;
-  const primaryButtonLabel = showReview
-    ? '确认并报名'
-    : showExtracting
-      ? '识别中...'
-      : '我说完了';
-  const primaryButtonDisabled = showReview
-    ? !isConfirmEnabled
-    : showExtracting
-      ? true
-      : showError
-        ? true
-        : !isDoneEnabled;
-  const primaryButtonClick = showReview ? onConfirm : onDone;
-  const showPrimaryCheck = showReview
-    ? isConfirmEnabled
-    : !showExtracting && !showError && isDoneEnabled;
-  const revealedCount = showExtracting ? Math.max(0, activeExtractionIndex + 1) : 4;
-  const missingFieldLabels = [
-    !phoneText ? '手机号' : '',
-    !positionText ? '意向职位' : '',
-    !cityText ? '意向城市' : '',
-    !ageText ? '年龄' : '',
-  ].filter(Boolean);
-  const isAgePickerOpen = editingField === 'age';
-  const isCityPickerOpen = editingField === 'city';
-  const isPhoneEditorOpen = editingField === 'phone';
-  const isPositionPickerOpen = editingField === 'position';
-  const isPhoneConfirmEnabled = isCompletePhoneNumber(phoneInputValue);
-  const selectedProvince = getCityPickerProvince(cityPickerState.selectedProvinceId);
-  const selectedCity = getCityPickerCity(cityPickerState.selectedProvinceId, cityPickerState.selectedCityId);
-  const selectedCategory = getPositionPickerCategory(positionPickerState.selectedCategoryId);
-
-  return (
-    <div className="absolute inset-0 z-30 overflow-hidden">
-      <div className={`apply-dialog-surface overlay-bg absolute inset-0 ${isActive ? 'overlay-bg--active' : ''}`} />
-
-      <button
-        className={`overlay-content absolute left-[351px] top-[136px] h-[44px] w-[44px] ${isActive ? 'overlay-content--active' : ''}`}
-        onClick={onClose}
-        type="button"
-      >
-        <img alt="" className="absolute left-[10px] top-[10px] h-[24px] w-[24px]" src={closeIconPng} />
-      </button>
-
-      <div className={`overlay-content absolute left-[56px] top-[165px] h-[65px] w-[224px] ${isActive ? 'overlay-content--active' : ''}`}>
-        <p className="m-0 text-[16px] leading-[22px] text-[#9c9c9c]">
-          {headingSubtitle}
-        </p>
-        <h1 className="m-0 mt-[4px] text-[28px] font-medium leading-[39px] text-[#222222]">
-          {headingTitle}
-        </h1>
-      </div>
-
-      <div className={`overlay-content absolute left-[56px] top-[258px] w-[310px] text-[#666666] ${isActive ? 'overlay-content--active' : ''}`}>
-        <div className="relative flex items-end gap-1 text-[20px] leading-7">
-          <span>我今年</span>
-          <button
-            aria-label="编辑年龄"
-            className="absolute left-[66px] top-0 h-[28px] w-[44px]"
-            onClick={onOpenAgePicker}
-            type="button"
-          />
-          <span className="mb-[2px] block h-px w-[35px] bg-[#d9dfe8]" />
-          <span>岁，</span>
-          {showReview && ageText ? (
-            <button
-              className="absolute left-[70px] top-0 text-[20px] font-medium leading-7 text-[#07d3a0]"
-              onClick={onOpenAgePicker}
-              type="button"
-            >
-              {ageText}
-            </button>
-          ) : null}
-        </div>
-        <div className="relative mt-6 flex items-end gap-1 text-[20px] leading-7">
-          <span>我的手机号是</span>
-          <button
-            aria-label="编辑手机号"
-            className="absolute left-[138px] top-0 h-[28px] w-[170px]"
-            onClick={onOpenPhoneEditor}
-            type="button"
-          />
-          <span className="mb-[2px] block h-px min-w-0 flex-1 bg-[#d9dfe8]" />
-          <span>，</span>
-          {showReview && phoneText ? (
-            <button
-              className="absolute left-[141px] top-0 text-[20px] font-medium leading-7 text-[#07d3a0]"
-              onClick={onOpenPhoneEditor}
-              type="button"
-            >
-              {phoneText}
-            </button>
-          ) : null}
-        </div>
-        <div className="relative mt-6 flex items-end gap-1 text-[20px] leading-7">
-          <span>我的意向城市是</span>
-          <button
-            aria-label="编辑意向城市"
-            className="absolute left-[152px] top-0 h-[28px] w-[156px]"
-            onClick={onOpenCityPicker}
-            type="button"
-          />
-          <span className="mb-[2px] block h-px min-w-0 flex-1 bg-[#d9dfe8]" />
-          <span>，</span>
-          {!showReview ? (
-            <span className="absolute left-[151px] top-1 text-[14px] leading-5 text-[#c6c6c6]">市/区/县（最多3个）</span>
-          ) : null}
-          {showReview && cityText ? (
-            <button
-              className="absolute left-[165px] top-0 text-[20px] font-medium leading-7 text-[#07d3a0]"
-              onClick={onOpenCityPicker}
-              type="button"
-            >
-              {cityText}
-            </button>
-          ) : null}
-        </div>
-        <div className="relative mt-6 flex items-end gap-1 text-[20px] leading-7">
-          <span>我的意向职位是</span>
-          <button
-            aria-label="编辑意向职位"
-            className="absolute left-[191px] top-0 h-[28px] w-[118px]"
-            onClick={onOpenPositionPicker}
-            type="button"
-          />
-          <span className="mb-[2px] block h-px min-w-0 flex-1 bg-[#d9dfe8]" />
-          <span>。</span>
-          {showReview && positionText ? (
-            <button
-              className="absolute left-[195px] top-0 text-[20px] font-medium leading-7 text-[#07d3a0]"
-              onClick={onOpenPositionPicker}
-              type="button"
-            >
-              {positionText}
-            </button>
-          ) : null}
-        </div>
-      </div>
-
-      <div className={`overlay-content absolute left-[32px] top-[497px] h-[233px] w-[350px] overflow-hidden ${isActive ? 'overlay-content--active' : ''}`}>
-        <div className="flex flex-col gap-[20px]">
-          {chatMessages.map((message) => (
-            <div
-              className={`chat-message ${message.state === 'entering' ? 'chat-message--entering' : ''} ${message.state === 'exiting' ? 'chat-message--exiting' : ''}`}
-              key={message.id}
-            >
-              {message.role === 'assistant' ? (
-                <AssistantBubble>
-                  <div className="whitespace-pre-line">{message.text}</div>
-                </AssistantBubble>
-              ) : (
-                <UserBubble text={message.text} />
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {!showExtracting && !showReview ? (
-        <div className={`overlay-content absolute left-[130.3px] top-[747px] flex h-[19.5px] w-[153.4px] items-center gap-[2.6px] ${isActive ? 'overlay-content--active' : ''}`}>
-          {[
-            [14.3, 14.3, 9.1, 19.5, 9.1],
-            [14.3, 14.3, 19.5, 9.1, 9.1],
-            [14.3, 14.3, 19.5, 9.1, 9.1],
-            [14.3, 14.3, 19.5, 9.1, 9.1],
-            [14.3, 14.3, 9.1, 19.5, 9.1],
-            [14.3, 14.3, 9.1, 19.5, 9.1],
-          ].map((groupHeights, groupIndex) => (
-            <div className="flex items-center gap-[2.6px]" key={groupIndex}>
-              {groupHeights.map((height, index) => (
-                <span
-                  className="wave-bar block w-[2.6px] rounded-[1.95px] bg-[#255153]"
-                  key={`${groupIndex}-${index}`}
-                  style={{ height: `${height}px`, animationDelay: `${(groupIndex * 5 + index) * 0.04}s` }}
-                />
-              ))}
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      <div className={`overlay-content absolute left-0 top-[802px] h-[64px] w-[414px] ${isActive ? 'overlay-content--active' : ''}`}>
-        <div className="absolute left-[19px] top-[8px] flex gap-4">
-          <button
-            className="h-[48px] w-[122px] rounded-[45px] bg-[#dff9f5] text-[15px] font-medium leading-[21px] text-[#222222]"
-            onClick={secondaryButtonClick}
-            type="button"
-          >
-            {secondaryButtonLabel}
-          </button>
-          <button
-            className="relative h-[48px] w-[238px] overflow-hidden rounded-[45px]"
-            disabled={primaryButtonDisabled}
-            onClick={primaryButtonClick}
-            type="button"
-          >
-            <div className="absolute inset-0 bg-[linear-gradient(343.43deg,#defcff_14.824%,#dbfff6_91.068%)]" />
-            <div className="absolute left-[-59px] top-[32px] h-[45px] w-[128px] rounded-[50%] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.8)_0%,rgba(255,255,255,0)_72%)]" />
-            <div className="absolute left-[186px] top-[-28px] h-[41px] w-[144px] rounded-[50%] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.7)_0%,rgba(255,255,255,0)_72%)]" />
-            <div className="absolute inset-0 z-10 flex items-center justify-center">
-              <div className="flex items-center gap-[6px]">
-                {showPrimaryCheck ? (
-                  <img
-                    alt=""
-                    aria-hidden="true"
-                    className="h-[20px] w-[20px] shrink-0"
-                    src={doneCheckSvg}
-                  />
-                ) : null}
-                <span
-                  className={`text-[15px] font-medium leading-[21px] ${
-                    showReview
-                      ? isConfirmEnabled
-                        ? 'text-[#222222]'
-                        : 'text-[#919191]'
-                      : showExtracting
-                        ? 'text-[#919191]'
-                        : showError
-                          ? 'text-[#919191]'
-                          : isDoneEnabled
-                        ? 'text-[#222222]'
-                        : 'text-[#919191]'
-                  }`}
-                >
-                  {primaryButtonLabel}
-                </span>
-              </div>
-            </div>
-            <div className="absolute inset-0 rounded-[45px] shadow-[inset_0_-3px_14.5px_rgba(255,255,255,0.6)]" />
-          </button>
-        </div>
-      </div>
-
-      {isPositionPickerOpen ? (
-        <div className="absolute inset-0 z-40">
-          <button
-            aria-label="关闭意向职位选择"
-            className="absolute inset-0"
-            onClick={onClosePositionPicker}
-            type="button"
-          />
-          <div className="absolute bottom-0 left-0 h-[586px] w-[414px] overflow-hidden rounded-t-[18px] bg-white">
-            <div className="relative flex h-[52px] items-center justify-center border-b border-[#f0f0f0]">
-              <h2 className="m-0 text-[16px] font-medium leading-[22px] text-[#222222]">选择意向职位</h2>
-              <button
-                className="absolute right-[16px] top-[14px] text-[24px] leading-[24px] text-[#222222]"
-                onClick={onClosePositionPicker}
-                type="button"
-              >
-                ×
-              </button>
-            </div>
-            <div className="flex h-[446px]">
-              <div className="w-[190px] overflow-y-auto bg-[#ffffff]">
-                {POSITION_PICKER_CATEGORIES.map((category) => {
-                  const isSelected = category.id === selectedCategory.id;
-                  return (
-                    <button
-                      className={`flex h-[44px] w-full items-center px-[18px] text-left text-[15px] leading-[21px] ${
-                        isSelected ? 'bg-[#f7f7f7] text-[#ff3b66]' : 'text-[#222222]'
-                      }`}
-                      key={category.id}
-                      onClick={() => onSelectPositionCategory(category.id)}
-                      type="button"
-                    >
-                      {category.label}
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="flex-1 overflow-y-auto bg-[#f7f7f7]">
-                {selectedCategory.options.map((option) => {
-                  const isSelected = option === positionPickerState.selectedOption;
-                  return (
-                    <button
-                      className="flex h-[44px] w-full items-center justify-between px-[18px] text-left text-[15px] leading-[21px] text-[#222222]"
-                      key={option}
-                      onClick={() => onSelectPositionOption(option)}
-                      type="button"
-                    >
-                      <span>{option}</span>
-                      <span
-                        className={`h-[16px] w-[16px] rounded-full border ${
-                          isSelected ? 'border-[#ff3b66] bg-[#ff3b66]' : 'border-[#d0d0d0] bg-white'
-                        }`}
-                      />
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="absolute bottom-[14px] left-[0] flex w-full items-center justify-center gap-[14px]">
-              <button
-                className="h-[44px] w-[156px] rounded-[22px] border border-[#d8d8d8] bg-white text-[16px] font-medium leading-[22px] text-[#222222]"
-                onClick={onResetPositionPicker}
-                type="button"
-              >
-                重置
-              </button>
-              <button
-                className="h-[44px] w-[156px] rounded-[22px] bg-[#ff3b66] text-[16px] font-medium leading-[22px] text-white"
-                disabled={!positionPickerState.selectedOption}
-                onClick={onConfirmPositionPicker}
-                type="button"
-              >
-                确定
-              </button>
-            </div>
-            <div className="absolute bottom-[6px] left-1/2 h-[5px] w-[134px] -translate-x-1/2 rounded-full bg-black" />
-          </div>
-        </div>
-      ) : null}
-
-      {isAgePickerOpen ? (
-        <div className="absolute inset-0 z-40">
-          <button
-            aria-label="关闭年龄选择"
-            className="absolute inset-0"
-            onClick={onCloseAgePicker}
-            type="button"
-          />
-          <div className="absolute bottom-0 left-0 h-[422px] w-[414px] overflow-hidden rounded-t-[16px] bg-white">
-            <div className="relative flex h-[56px] items-center justify-center border-b border-[#f0f0f0]">
-              <h2 className="m-0 text-[18px] font-medium leading-[24px] text-black">选择年龄</h2>
-              <button
-                className="absolute right-[8px] top-[8px] flex h-[40px] w-[40px] items-center justify-center text-[28px] leading-[28px] text-[#222222]"
-                onClick={onCloseAgePicker}
-                type="button"
-              >
-                ×
-              </button>
-            </div>
-            <AgeWheelPicker onSelectAge={onSelectAge} selectedAge={selectedAge} />
-            <div className="absolute bottom-[34px] left-[0] flex w-full items-center justify-center">
-              <button
-                className="h-[48px] w-[256px] rounded-[24px] bg-[#fe3666] text-[15px] font-medium leading-[21px] text-white"
-                disabled={!selectedAge}
-                onClick={onConfirmAgePicker}
-                type="button"
-              >
-                确定
-              </button>
-            </div>
-            <div className="absolute bottom-[8px] left-1/2 h-[5px] w-[134px] -translate-x-1/2 rounded-[100px] bg-black" />
-          </div>
-        </div>
-      ) : null}
-
-      {isCityPickerOpen ? (
-        <div className="absolute inset-0 z-40">
-          <button
-            aria-label="关闭城市选择"
-            className="absolute inset-0"
-            onClick={onCloseCityPicker}
-            type="button"
-          />
-          <div className="absolute bottom-0 left-0 h-[586px] w-[414px] overflow-hidden rounded-t-[18px] bg-white">
-            <div className="relative flex h-[52px] items-center justify-center border-b border-[#f0f0f0]">
-              <h2 className="m-0 text-[16px] font-medium leading-[22px] text-[#222222]">选择意向城市</h2>
-              <button
-                className="absolute right-[16px] top-[14px] text-[24px] leading-[24px] text-[#222222]"
-                onClick={onCloseCityPicker}
-                type="button"
-              >
-                ×
-              </button>
-            </div>
-            <div className="flex h-[446px]">
-              <div className="w-[138px] overflow-y-auto bg-[#ffffff]">
-                {CITY_PICKER_PROVINCES.map((province) => {
-                  const isSelected = province.id === selectedProvince.id;
-                  return (
-                    <button
-                      className={`flex h-[44px] w-full items-center px-[18px] text-left text-[15px] leading-[21px] ${
-                        isSelected ? 'bg-[#f7f7f7] text-[#ff3b66]' : 'text-[#222222]'
-                      }`}
-                      key={province.id}
-                      onClick={() => onSelectProvince(province.id)}
-                      type="button"
-                    >
-                      {province.label}
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="w-[138px] overflow-y-auto bg-[#f7f7f7]">
-                {selectedProvince.cities.map((city) => {
-                  const isSelected = city.id === selectedCity.id;
-                  return (
-                    <button
-                      className={`flex h-[44px] w-full items-center px-[18px] text-left text-[15px] leading-[21px] ${
-                        isSelected ? 'bg-white text-[#ff3b66]' : 'text-[#222222]'
-                      }`}
-                      key={city.id}
-                      onClick={() => onSelectCity(city.id)}
-                      type="button"
-                    >
-                      {city.label}
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="flex-1 overflow-y-auto bg-white">
-                {selectedCity.districts.map((district) => {
-                  const isSelected = district.id === cityPickerState.selectedDistrictId;
-                  return (
-                    <button
-                      className="flex h-[44px] w-full items-center justify-between px-[18px] text-left text-[15px] leading-[21px] text-[#222222]"
-                      key={district.id}
-                      onClick={() => onSelectDistrict(district.id)}
-                      type="button"
-                    >
-                      <span>{district.label}</span>
-                      <span
-                        className={`h-[16px] w-[16px] rounded-full border ${
-                          isSelected ? 'border-[#ff3b66] bg-[#ff3b66]' : 'border-[#d0d0d0] bg-white'
-                        }`}
-                      />
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="absolute bottom-[14px] left-[0] flex w-full items-center justify-center gap-[14px]">
-              <button
-                className="h-[44px] w-[156px] rounded-[22px] border border-[#d8d8d8] bg-white text-[16px] font-medium leading-[22px] text-[#222222]"
-                onClick={onResetCityPicker}
-                type="button"
-              >
-                重置
-              </button>
-              <button
-                className="h-[44px] w-[156px] rounded-[22px] bg-[#ff3b66] text-[16px] font-medium leading-[22px] text-white"
-                disabled={!cityPickerState.selectedDistrictId}
-                onClick={onConfirmCityPicker}
-                type="button"
-              >
-                确定
-              </button>
-            </div>
-            <div className="absolute bottom-[6px] left-1/2 h-[5px] w-[134px] -translate-x-1/2 rounded-full bg-black" />
-          </div>
-        </div>
-      ) : null}
-
-      {isPhoneEditorOpen ? (
-        <div className="absolute inset-0 z-40">
-          <button
-            aria-label="关闭手机号编辑"
-            className="absolute inset-0"
-            onClick={onClosePhoneEditor}
-            type="button"
-          />
-          <div className="absolute bottom-0 left-0 h-[306px] w-[414px] overflow-hidden rounded-t-[18px] bg-white">
-            <div className="relative flex h-[52px] items-center justify-center border-b border-[#f0f0f0]">
-              <h2 className="m-0 text-[16px] font-medium leading-[22px] text-[#222222]">修改手机号</h2>
-              <button
-                className="absolute right-[16px] top-[14px] text-[24px] leading-[24px] text-[#222222]"
-                onClick={onClosePhoneEditor}
-                type="button"
-              >
-                ×
-              </button>
-            </div>
-            <div className="px-[24px] pt-[28px]">
-              <label className="block text-[14px] leading-[20px] text-[#777777]" htmlFor="phone-editor-input">
-                手机号码
-              </label>
-              <input
-                autoFocus
-                className="mt-[10px] h-[50px] w-full rounded-[10px] border border-[#e1e5eb] bg-[#f8fafc] px-[14px] text-[22px] font-medium leading-[30px] text-[#222222] outline-none focus:border-[#07d3a0]"
-                id="phone-editor-input"
-                inputMode="numeric"
-                maxLength={11}
-                onChange={(event) => onChangePhoneInput(event.target.value)}
-                placeholder="请输入手机号"
-                type="tel"
-                value={phoneInputValue}
-              />
-              <p className="m-0 mt-[8px] text-[13px] leading-[18px] text-[#9c9c9c]">请输入 11 位手机号码</p>
-            </div>
-            <div className="absolute bottom-[20px] left-[0] flex w-full items-center justify-center gap-[14px]">
-              <button
-                className="h-[44px] w-[156px] rounded-[22px] border border-[#d8d8d8] bg-white text-[16px] font-medium leading-[22px] text-[#222222]"
-                onClick={onClosePhoneEditor}
-                type="button"
-              >
-                取消
-              </button>
-              <button
-                className={`h-[44px] w-[156px] rounded-[22px] text-[16px] font-medium leading-[22px] text-white ${
-                  isPhoneConfirmEnabled ? 'bg-[#ff3b66]' : 'bg-[#d8d8d8]'
-                }`}
-                disabled={!isPhoneConfirmEnabled}
-                onClick={onConfirmPhoneEditor}
-                type="button"
-              >
-                确定
-              </button>
-            </div>
-            <div className="absolute bottom-[6px] left-1/2 h-[5px] w-[134px] -translate-x-1/2 rounded-full bg-black" />
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 export default function App() {
-  const { actions, activeExtractionIndex, analysis, error, phase, transcriptText, updateFeedback } = useVoiceSession();
+  const {
+    actions,
+    activeExtractionIndex,
+    analysis,
+    error,
+    hasApplied,
+    phase,
+    recordingState,
+    transcriptText,
+    updateFeedback,
+  } = useVoiceSession();
   const [overlayVisible, setOverlayVisible] = useState(false);
   const [overlayActive, setOverlayActive] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [manualEdits, setManualEdits] = useState<ManualEdits>({ age: null, city: null, phone: null, position: null });
+  const [manualEdits, setManualEdits] = useState<ManualEdits>({
+    age: null,
+    city: null,
+    phone: null,
+    position: null,
+  });
   const [editingField, setEditingField] = useState<EditableField | null>(null);
   const [cityPickerState, setCityPickerState] = useState<CityPickerState>(() =>
     resolveCityPickerState(''),
@@ -867,18 +117,12 @@ export default function App() {
   const cityText = manualEdits.city ?? detectedCityText;
   const detectedPositionText = getDetectedValue(extractionItems, 'position');
   const positionText = manualEdits.position ?? detectedPositionText;
-  const missingFieldLabels = [
-    !phoneText ? '手机号' : '',
-    !positionText ? '意向职位' : '',
-    !cityText ? '意向城市' : '',
-    !ageText ? '年龄' : '',
-  ].filter(Boolean);
   const isConfirmEnabled =
     ageText.trim().length > 0 &&
     phoneText.trim().length > 0 &&
     cityText.trim().length > 0 &&
     positionText.trim().length > 0;
-  const overlayMode: 'recording' | 'extracting' | 'review' | 'error' = error
+  const overlayMode: ApplyMode = error
     ? 'error'
     : phase === 'extracting'
       ? 'extracting'
@@ -944,14 +188,21 @@ export default function App() {
     }
 
     if (overlayMode === 'error') {
-      pushChatMessage(
-        'assistant',
-        error?.message ?? '识别失败，请重说或点击上方信息填写吧',
-      );
+      pushChatMessage('assistant', createErrorPrompt(error));
       return;
     }
 
     if (overlayMode === 'recording') {
+      const recordingPrompt = createRecordingPrompt({
+        hasExistingInfo: Boolean(ageText || cityText || phoneText || positionText),
+        recordingState,
+        transcriptText,
+      });
+
+      if (recordingPrompt) {
+        pushChatMessage('assistant', recordingPrompt);
+      }
+
       if (transcriptText.trim()) {
         pushChatMessage('user', transcriptText.trim());
       }
@@ -969,13 +220,13 @@ export default function App() {
         return;
       }
 
-      const reviewText =
-        missingFieldLabels.length > 0
-          ? `您的${missingFieldLabels.join('、')}识别失败，请重说或点击上方信息填写吧`
-          : '点击下方信息可手动修改';
-      pushChatMessage('assistant', reviewText, { removeTexts: [RECOGNIZING_CHAT_TEXT] });
+      pushChatMessage(
+        'assistant',
+        createReviewPrompt({ ageText, cityText, phoneText, positionText }),
+        { removeTexts: [RECOGNIZING_CHAT_TEXT] },
+      );
     }
-  }, [error?.message, missingFieldLabels, overlayMode, overlayVisible, transcriptText, updateFeedback]);
+  }, [ageText, cityText, error, overlayMode, overlayVisible, phoneText, positionText, recordingState, transcriptText, updateFeedback]);
 
   function startApplyFlow() {
     setOverlayVisible(true);
@@ -1025,17 +276,13 @@ export default function App() {
     window.setTimeout(() => setOverlayVisible(false), 160);
   }
 
+  function closeSuccessScreen() {
+    actions.closeOverlay();
+  }
+
   function openAgePicker() {
     setSelectedAge(normalizeAgeValue(ageText));
     setEditingField('age');
-  }
-
-  function closeAgePicker() {
-    setEditingField(null);
-  }
-
-  function selectAge(age: string) {
-    setSelectedAge(age);
   }
 
   function confirmAgePicker() {
@@ -1043,7 +290,7 @@ export default function App() {
       return;
     }
 
-    const feedbackText = selectedAge === ageText ? '信息已保存' : '年龄修改成功';
+    const feedbackText = createManualEditFeedback('年龄', `${selectedAge}岁`, ageText ? `${ageText}岁` : '');
 
     setManualEdits((current) => ({
       ...current,
@@ -1056,10 +303,6 @@ export default function App() {
   function openCityPicker() {
     setCityPickerState(resolveCityPickerState(cityText));
     setEditingField('city');
-  }
-
-  function closeCityPicker() {
-    setEditingField(null);
   }
 
   function selectProvince(provinceId: string) {
@@ -1085,13 +328,6 @@ export default function App() {
     }));
   }
 
-  function selectDistrict(districtId: string) {
-    setCityPickerState((current) => ({
-      ...current,
-      selectedDistrictId: districtId,
-    }));
-  }
-
   function resetCityPicker() {
     setCityPickerState((current) => ({
       initialSelection: current.initialSelection,
@@ -1107,7 +343,7 @@ export default function App() {
       cityPickerState.selectedCityId,
       cityPickerState.selectedDistrictId,
     );
-    const feedbackText = nextValue === cityText ? '信息已保存' : '意向城市修改成功';
+    const feedbackText = createManualEditFeedback('工作地点', nextValue, cityText);
 
     setManualEdits((current) => ({
       ...current,
@@ -1122,10 +358,6 @@ export default function App() {
     setEditingField('phone');
   }
 
-  function closePhoneEditor() {
-    setEditingField(null);
-  }
-
   function changePhoneInput(value: string) {
     setPhoneInputValue(normalizePhoneInput(value));
   }
@@ -1135,7 +367,7 @@ export default function App() {
       return;
     }
 
-    const feedbackText = phoneInputValue === phoneText ? '信息已保存' : '手机号修改成功';
+    const feedbackText = createManualEditFeedback('手机号', phoneInputValue, phoneText);
 
     setManualEdits((current) => ({
       ...current,
@@ -1146,13 +378,8 @@ export default function App() {
   }
 
   function openPositionPicker() {
-    const nextState = resolvePositionPickerState(positionText);
-    setPositionPickerState(nextState);
+    setPositionPickerState(resolvePositionPickerState(positionText));
     setEditingField('position');
-  }
-
-  function closePositionPicker() {
-    setEditingField(null);
   }
 
   function resetPositionPicker() {
@@ -1190,21 +417,13 @@ export default function App() {
     });
   }
 
-  function selectPositionOption(option: string) {
-    setPositionPickerState((current) => ({
-      ...current,
-      selectedOption: option,
-    }));
-  }
-
   function confirmPositionPicker() {
     if (!positionPickerState.selectedOption) {
       return;
     }
 
     const selectedPosition = positionPickerState.selectedOption;
-    const feedbackText =
-      selectedPosition === positionText ? '信息已保存' : '意向职位修改成功';
+    const feedbackText = createManualEditFeedback('意向职位', selectedPosition, positionText);
 
     setManualEdits((current) => ({
       ...current,
@@ -1217,48 +436,59 @@ export default function App() {
   return (
     <PhoneShell>
       <JobScreen onApply={startApplyFlow} />
+      {hasApplied ? <SuccessScreen onClose={closeSuccessScreen} /> : null}
       {overlayVisible ? (
         <ApplyScreen
           activeExtractionIndex={activeExtractionIndex}
           ageText={ageText}
+          chatMessages={chatMessages}
+          cityPickerState={cityPickerState}
           cityText={cityText}
-          isConfirmEnabled={isConfirmEnabled}
+          editingField={editingField}
           isActive={overlayActive}
+          isConfirmEnabled={isConfirmEnabled}
           isDoneEnabled={isDoneEnabled}
           mode={overlayMode}
-          onConfirm={handleConfirm}
-          onConfirmCityPicker={confirmCityPicker}
-          onClose={closeApplyScreen}
-          onDone={finishRecording}
-          cityPickerState={cityPickerState}
-          editingField={editingField}
-          onRetry={retryRecording}
-          selectedAge={selectedAge}
-          onCloseAgePicker={closeAgePicker}
-          onCloseCityPicker={closeCityPicker}
           onChangePhoneInput={changePhoneInput}
-          onClosePhoneEditor={closePhoneEditor}
-          onClosePositionPicker={closePositionPicker}
+          onClose={closeApplyScreen}
+          onCloseAgePicker={() => setEditingField(null)}
+          onCloseCityPicker={() => setEditingField(null)}
+          onClosePhoneEditor={() => setEditingField(null)}
+          onClosePositionPicker={() => setEditingField(null)}
+          onConfirm={handleConfirm}
           onConfirmAgePicker={confirmAgePicker}
+          onConfirmCityPicker={confirmCityPicker}
           onConfirmPhoneEditor={confirmPhoneEditor}
           onConfirmPositionPicker={confirmPositionPicker}
+          onDone={finishRecording}
           onOpenAgePicker={openAgePicker}
           onOpenCityPicker={openCityPicker}
           onOpenPhoneEditor={openPhoneEditor}
           onOpenPositionPicker={openPositionPicker}
           onResetCityPicker={resetCityPicker}
           onResetPositionPicker={resetPositionPicker}
-          onSelectAge={selectAge}
+          onRetry={retryRecording}
+          onSelectAge={setSelectedAge}
           onSelectCity={selectCity}
-          onSelectDistrict={selectDistrict}
-          onSelectProvince={selectProvince}
+          onSelectDistrict={(districtId) =>
+            setCityPickerState((current) => ({
+              ...current,
+              selectedDistrictId: districtId,
+            }))
+          }
           onSelectPositionCategory={selectPositionCategory}
-          onSelectPositionOption={selectPositionOption}
+          onSelectPositionOption={(option) =>
+            setPositionPickerState((current) => ({
+              ...current,
+              selectedOption: option,
+            }))
+          }
+          onSelectProvince={selectProvince}
           phoneInputValue={phoneInputValue}
           phoneText={phoneText}
-          positionText={positionText}
           positionPickerState={positionPickerState}
-          chatMessages={chatMessages}
+          positionText={positionText}
+          selectedAge={selectedAge}
         />
       ) : null}
     </PhoneShell>
