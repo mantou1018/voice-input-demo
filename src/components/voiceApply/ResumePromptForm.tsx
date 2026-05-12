@@ -3,6 +3,7 @@ type ResumePromptFormProps = {
   cityText: string;
   phoneText: string;
   positionText: string;
+  recordingStyle: boolean;
   showReview: boolean;
   onOpenAgePicker: () => void;
   onOpenCityPicker: () => void;
@@ -15,27 +16,43 @@ export function ResumePromptForm({
   cityText,
   phoneText,
   positionText,
+  recordingStyle,
   showReview,
   onOpenAgePicker,
   onOpenCityPicker,
   onOpenPhoneEditor,
   onOpenPositionPicker,
 }: ResumePromptFormProps) {
+  const fieldTextClass = recordingStyle
+    ? 'text-[20px] leading-[normal] text-[#666666]'
+    : 'text-[20px] leading-7 text-[#666666]';
+  const valueTextClass = recordingStyle
+    ? 'text-[20px] font-medium leading-[normal] text-[#07d3a0]'
+    : 'text-[20px] font-medium leading-7 text-[#07d3a0]';
+  const placeholderTextClass = recordingStyle
+    ? 'text-[14px] leading-5 text-[rgba(156,156,156,0.8)]'
+    : 'text-[14px] leading-5 text-[#c6c6c6]';
+  const lineClass = recordingStyle
+    ? 'bg-[#d7d9de]'
+    : 'bg-[#d9dfe8]';
+
   return (
-    <div className="mt-[28px] shrink-0 text-[#666666]">
-      <div className="relative flex items-end gap-1 text-[20px] leading-7">
+    <div
+      className={`shrink-0 text-[#666666] ${recordingStyle ? 'mt-[28px] flex w-[310px] flex-col gap-[24px]' : 'mt-[28px]'}`}
+    >
+      <div className={`relative flex h-[28px] items-end gap-1 ${fieldTextClass}`}>
         <span>我今年</span>
         <button
           aria-label="编辑年龄"
-          className="absolute left-[66px] top-0 h-[28px] w-[44px]"
+          className={`absolute top-0 ${recordingStyle ? 'left-[64px] h-[28px] w-[40px]' : 'left-[66px] h-[28px] w-[44px]'}`}
           onClick={onOpenAgePicker}
           type="button"
         />
-        <span className="mb-[2px] block h-px w-[35px] bg-[#d9dfe8]" />
+        <span className={`mb-[2px] block h-px w-[35px] ${lineClass}`} />
         <span>岁，</span>
         {showReview && ageText ? (
           <button
-            className="absolute left-[70px] top-0 text-[20px] font-medium leading-7 text-[#07d3a0]"
+            className={`absolute left-[70px] top-0 ${valueTextClass}`}
             onClick={onOpenAgePicker}
             type="button"
           >
@@ -43,19 +60,19 @@ export function ResumePromptForm({
           </button>
         ) : null}
       </div>
-      <div className="relative mt-6 flex items-end gap-1 text-[20px] leading-7">
+      <div className={`relative flex h-[28px] items-end gap-1 ${fieldTextClass} ${recordingStyle ? '' : 'mt-6'}`}>
         <span>我的手机号是</span>
         <button
           aria-label="编辑手机号"
-          className="absolute left-[138px] top-0 h-[28px] w-[170px]"
+          className={`absolute top-0 ${recordingStyle ? 'left-[124px] h-[28px] w-[164px]' : 'left-[138px] h-[28px] w-[170px]'}`}
           onClick={onOpenPhoneEditor}
           type="button"
         />
-        <span className="mb-[2px] block min-w-0 flex-1 border-b border-[#d9dfe8]" />
+        <span className={`mb-[2px] block min-w-0 flex-1 border-b ${recordingStyle ? 'border-[#d7d9de]' : 'border-[#d9dfe8]'}`} />
         <span>，</span>
         {showReview && phoneText ? (
           <button
-            className="absolute left-[141px] top-0 text-[20px] font-medium leading-7 text-[#07d3a0]"
+            className={`absolute top-0 ${recordingStyle ? 'left-[128px]' : 'left-[141px]'} ${valueTextClass}`}
             onClick={onOpenPhoneEditor}
             type="button"
           >
@@ -63,22 +80,22 @@ export function ResumePromptForm({
           </button>
         ) : null}
       </div>
-      <div className="relative mt-6 flex items-end gap-1 text-[20px] leading-7">
+      <div className={`relative flex h-[28px] items-end gap-1 ${fieldTextClass} ${recordingStyle ? '' : 'mt-6'}`}>
         <span>我的意向城市是</span>
         <button
           aria-label="编辑意向城市"
-          className="absolute left-[152px] top-0 h-[28px] w-[156px]"
+          className={`absolute top-0 ${recordingStyle ? 'left-[144px] h-[28px] w-[144px]' : 'left-[152px] h-[28px] w-[156px]'}`}
           onClick={onOpenCityPicker}
           type="button"
         />
-        <span className="mb-[2px] block min-w-0 flex-1 border-b border-[#d9dfe8]" />
+        <span className={`mb-[2px] block min-w-0 flex-1 border-b ${recordingStyle ? 'border-[#d7d9de]' : 'border-[#d9dfe8]'}`} />
         <span>，</span>
         {!showReview ? (
-          <span className="absolute left-[151px] top-1 text-[14px] leading-5 text-[#c6c6c6]">市/区/县（最多3个）</span>
+          <span className={`absolute ${recordingStyle ? 'left-[151px] top-[4px]' : 'left-[151px] top-1'} ${placeholderTextClass}`}>市/区/县（最多3个）</span>
         ) : null}
         {showReview && cityText ? (
           <button
-            className="absolute left-[165px] top-0 text-[20px] font-medium leading-7 text-[#07d3a0]"
+            className={`absolute top-0 ${recordingStyle ? 'left-[152px]' : 'left-[165px]'} ${valueTextClass}`}
             onClick={onOpenCityPicker}
             type="button"
           >
@@ -86,19 +103,22 @@ export function ResumePromptForm({
           </button>
         ) : null}
       </div>
-      <div className="relative mt-6 flex items-end gap-1 text-[20px] leading-7">
+      <div className={`relative flex h-[28px] items-end gap-1 ${fieldTextClass} ${recordingStyle ? '' : 'mt-6'}`}>
         <span>我的意向职位是</span>
         <button
           aria-label="编辑意向职位"
-          className="absolute left-[191px] top-0 h-[28px] w-[118px]"
+          className={`absolute top-0 ${recordingStyle ? 'left-[144px] h-[28px] w-[144px]' : 'left-[191px] h-[28px] w-[118px]'}`}
           onClick={onOpenPositionPicker}
           type="button"
         />
-        <span className="mb-[2px] block min-w-0 flex-1 border-b border-[#d9dfe8]" />
+        <span className={`mb-[2px] block min-w-0 flex-1 border-b ${recordingStyle ? 'border-[#d7d9de]' : 'border-[#d9dfe8]'}`} />
         <span>。</span>
+        {!showReview && recordingStyle ? (
+          <span className="absolute left-[175px] top-[4px] text-[14px] leading-5 text-[rgba(156,156,156,0.8)]">（最多5个）</span>
+        ) : null}
         {showReview && positionText ? (
           <button
-            className="absolute left-[195px] top-0 text-[20px] font-medium leading-7 text-[#07d3a0]"
+            className={`absolute top-0 ${recordingStyle ? 'left-[152px]' : 'left-[195px]'} ${valueTextClass}`}
             onClick={onOpenPositionPicker}
             type="button"
           >

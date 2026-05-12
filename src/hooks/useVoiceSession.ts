@@ -331,7 +331,7 @@ export function useVoiceSession() {
         code: 'permission-denied',
         message: microphoneGrantedRef.current
           ? '当前浏览器环境限制了语音识别，请改用系统浏览器打开后继续补充。'
-          : '暂时不能语音输入。你可以再试一次，或直接手动填写。',
+          : '你可以手动填写报名信息，也能继续报名。',
         recoverable: true,
       });
       setRecordingState('error');

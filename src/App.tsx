@@ -124,6 +124,8 @@ export default function App() {
     positionText.trim().length > 0;
   const overlayMode: ApplyMode = error
     ? 'error'
+    : phase === 'intro'
+      ? 'prepare'
     : phase === 'extracting'
       ? 'extracting'
       : phase === 'review'
@@ -164,14 +166,7 @@ export default function App() {
       window.clearTimeout(chatTimeoutRef.current);
       chatTimeoutRef.current = null;
     }
-    setChatMessages([
-      {
-        id: `assistant-${Date.now()}`,
-        role: 'assistant',
-        text: '请说，我在听...',
-        state: 'stable',
-      },
-    ]);
+    setChatMessages([]);
   }
 
   useEffect(() => {
@@ -193,17 +188,7 @@ export default function App() {
     }
 
     if (overlayMode === 'recording') {
-      const recordingPrompt = createRecordingPrompt({
-        hasExistingInfo: Boolean(ageText || cityText || phoneText || positionText),
-        recordingState,
-        transcriptText,
-      });
-
-      if (recordingPrompt) {
-        pushChatMessage('assistant', recordingPrompt);
-      }
-
-      if (transcriptText.trim()) {
+      if (recordingState === 'recognizing' && transcriptText.trim()) {
         pushChatMessage('user', transcriptText.trim());
       }
       return;
@@ -266,6 +251,9 @@ export default function App() {
   }
 
   function finishRecording() {
+    if (transcriptText.trim()) {
+      pushChatMessage('user', transcriptText.trim());
+    }
     actions.finishHoldToTalk(false);
   }
 
@@ -489,6 +477,7 @@ export default function App() {
           positionPickerState={positionPickerState}
           positionText={positionText}
           selectedAge={selectedAge}
+          transcriptText={transcriptText}
         />
       ) : null}
     </PhoneShell>

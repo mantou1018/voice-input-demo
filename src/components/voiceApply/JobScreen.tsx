@@ -1,43 +1,49 @@
 import jobDetailBgPng from '../../assets/job-detail-bg.png';
 import micIconPng from '../../assets/mic-icon.png';
-import voiceTagPng from '../../assets/voice-tag.png';
 import { HomeIndicator } from './PhoneShell';
 
 export function JobScreen({ onApply }: { onApply: () => void }) {
   return (
-    <div className="relative h-full w-full overflow-hidden bg-white">
-      <img alt="" className="absolute inset-0 h-full w-full" src={jobDetailBgPng} />
-
+    <div className="relative h-full w-full overflow-hidden bg-[#f5f5f5]">
       <img
-        alt="语音简历"
-        className="pointer-events-none absolute left-[343px] top-[796px] z-20 h-[20px] w-[52px]"
-        src={voiceTagPng}
+        alt=""
+        className="absolute left-0 top-0 block w-full select-none"
+        draggable="false"
+        src={jobDetailBgPng}
       />
 
-      <div className="absolute bottom-0 left-0 h-[98px] w-[414px]">
-        <div className="absolute inset-0 bg-white" />
-        <div className="absolute left-0 top-[64px] h-[34px] w-[414px] bg-white" />
-        <div className="absolute left-0 top-0 h-px w-[414px] bg-[#eaeaea]" />
-        <div className="absolute left-[19px] top-[8px] flex gap-4">
-          <button
-            className="h-[48px] w-[122px] rounded-[45px] bg-[#ffeff4] text-[15px] font-medium leading-[21px] text-[#fe3666]"
-            type="button"
+      <div className="absolute inset-x-0 bottom-0 z-20 border-t border-[#eaeaea] bg-white">
+        <div className="relative px-[19px] pb-[max(8px,calc(env(safe-area-inset-bottom)+4px))] pt-[8px]">
+          <div
+            className="absolute right-[19px] top-[-2px] flex h-[20px] items-center justify-center rounded-[4px] rounded-bl-[2px] px-[6px] text-[11px] font-medium leading-[15px] text-black"
+            style={{
+              backgroundImage:
+                'linear-gradient(336deg, rgb(95 241 255) 28.42%, rgb(49 248 198) 52.516%)',
+            }}
           >
-            在线聊
-          </button>
-          <button
-            className="relative h-[48px] w-[238px] rounded-[45px] bg-[#fe3666]"
-            data-testid="apply-voice-button"
-            onClick={onApply}
-            type="button"
-          >
-            <img alt="" aria-hidden="true" className="absolute left-[77px] top-[14px] h-[20px] w-[20px]" src={micIconPng} />
-            <span className="absolute left-[101px] top-[13.5px] text-[15px] font-medium leading-[21px] text-white">
-              说话报名
-            </span>
-          </button>
+            语音简历
+          </div>
+
+          <div className="flex items-center gap-4">
+            <button
+              className="h-[48px] min-w-0 flex-1 rounded-[45px] bg-[#ffeff4] text-[15px] font-medium leading-[21px] text-[#fe3666] transition-opacity active:opacity-85"
+              type="button"
+            >
+              在线聊
+            </button>
+            <button
+              className="flex h-[48px] min-w-0 flex-[1.9508] items-center justify-center gap-[4px] rounded-[45px] bg-[#fe3666] px-[24px] text-white transition-transform active:scale-[0.985]"
+              data-testid="apply-voice-button"
+              onClick={onApply}
+              type="button"
+            >
+              <img alt="" aria-hidden="true" className="h-[20px] w-[20px] shrink-0" src={micIconPng} />
+              <span className="text-[15px] font-medium leading-[21px]">说话报名</span>
+            </button>
+          </div>
+
+          <HomeIndicator className="mx-auto mt-[12px] max-[480px]:hidden" />
         </div>
-        <HomeIndicator className="absolute left-[140.55px] top-[84px]" />
       </div>
     </div>
   );

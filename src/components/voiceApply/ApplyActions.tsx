@@ -1,6 +1,9 @@
 import doneCheckSvg from '../../assets/done-check.svg';
+import type { ApplyMode } from './types';
 
 type ApplyActionsProps = {
+  mode: ApplyMode;
+  hasTranscriptText?: boolean;
   isConfirmEnabled: boolean;
   isDoneEnabled: boolean;
   showError: boolean;
@@ -37,6 +40,8 @@ export function VoiceWave() {
 }
 
 export function ApplyActions({
+  mode,
+  hasTranscriptText = false,
   isConfirmEnabled,
   isDoneEnabled,
   showError,
@@ -46,6 +51,10 @@ export function ApplyActions({
   onConfirm,
   onRetry,
 }: ApplyActionsProps) {
+  const isPrepareMode = mode === 'prepare';
+  const isRecordingMode = mode === 'recording';
+  const isErrorMode = mode === 'error';
+  const isExtractingMode = mode === 'extracting';
   const primaryButtonLabel = showReview
     ? '确认并报名'
     : showExtracting
@@ -56,6 +65,8 @@ export function ApplyActions({
     ? !isConfirmEnabled
     : showExtracting
       ? true
+      : isPrepareMode
+        ? true
       : showError
         ? true
         : !isDoneEnabled;
@@ -63,6 +74,80 @@ export function ApplyActions({
   const showPrimaryCheck = showReview
     ? isConfirmEnabled
     : !showExtracting && !showError && isDoneEnabled;
+
+  if (isPrepareMode) {
+    return (
+      <div className="shrink-0 pt-[6px]">
+        <div className="flex gap-4">
+          <button
+            className="h-[48px] w-[102px] shrink-0 rounded-[24px] bg-white px-[24px] py-[13.5px] text-[15px] font-medium leading-[21px] text-[#222222] shadow-[0_0_0_1px_rgba(255,255,255,0.88)]"
+            onClick={onRetry}
+            type="button"
+          >
+            继续补充
+          </button>
+          <button
+            className="h-[48px] min-w-0 flex-1 rounded-[24px] bg-[linear-gradient(347deg,#5ff1ff_18.034%,#31f8c6_78.723%)] px-[24px] py-[13.5px] text-[15px] font-medium leading-[21px] text-[#222222] shadow-[0_10px_24px_rgba(49,248,198,0.16)]"
+            onClick={onConfirm}
+            type="button"
+          >
+            确认并报名
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isRecordingMode || isErrorMode) {
+    return (
+      <div className="shrink-0 pt-[6px]">
+        <div className="flex gap-4">
+          <button
+            className="h-[48px] w-[102px] shrink-0 rounded-[24px] bg-white px-[24px] py-[13.5px] text-[15px] font-medium leading-[21px] text-[#222222] shadow-[0_0_0_1px_rgba(255,255,255,0.88)]"
+            onClick={onRetry}
+            type="button"
+          >
+            重说
+          </button>
+          <button
+            className={`h-[48px] min-w-0 flex-1 rounded-[24px] px-[24px] py-[13.5px] text-[15px] font-medium leading-[21px] ${
+              hasTranscriptText
+                ? 'bg-[linear-gradient(347deg,#5ff1ff_18.034%,#31f8c6_78.723%)] text-[#222222] shadow-[0_10px_24px_rgba(49,248,198,0.16)]'
+                : 'bg-[rgba(255,255,255,0.6)] text-[#919191]'
+            }`}
+            disabled={!hasTranscriptText}
+            onClick={onDone}
+            type="button"
+          >
+            发送
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isExtractingMode) {
+    return (
+      <div className="shrink-0 pt-[6px]">
+        <div className="flex gap-4">
+          <button
+            className="h-[48px] w-[102px] shrink-0 rounded-[24px] bg-white px-[24px] py-[13.5px] text-[15px] font-medium leading-[21px] text-[#222222] shadow-[0_0_0_1px_rgba(255,255,255,0.88)]"
+            onClick={onRetry}
+            type="button"
+          >
+            重说
+          </button>
+          <button
+            className="h-[48px] min-w-0 flex-1 rounded-[24px] bg-[linear-gradient(347deg,#5ff1ff_18.034%,#31f8c6_78.723%)] px-[24px] py-[13.5px] text-[15px] font-medium leading-[21px] text-[#222222] shadow-[0_10px_24px_rgba(49,248,198,0.16)]"
+            onClick={onDone}
+            type="button"
+          >
+            发送
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="shrink-0 pt-[6px]">

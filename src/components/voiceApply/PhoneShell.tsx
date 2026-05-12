@@ -1,5 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 
+export const PHONE_FRAME_WIDTH = 414;
+export const PHONE_FRAME_HEIGHT = 818;
+
 export function PhoneShell({ children }: { children: ReactNode }) {
   const [scale, setScale] = useState(1);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
@@ -14,8 +17,8 @@ export function PhoneShell({ children }: { children: ReactNode }) {
         return;
       }
 
-      const horizontalScale = (window.innerWidth - 32) / 414;
-      const verticalScale = (window.innerHeight - 32) / 896;
+      const horizontalScale = (window.innerWidth - 32) / PHONE_FRAME_WIDTH;
+      const verticalScale = (window.innerHeight - 32) / PHONE_FRAME_HEIGHT;
       setScale(Math.min(1, horizontalScale, verticalScale));
     };
 
@@ -37,8 +40,12 @@ export function PhoneShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen items-center justify-center overflow-auto bg-black p-4">
       <div
-        className="relative h-[896px] w-[414px] origin-center overflow-hidden rounded-[32px] bg-white shadow-[0_24px_90px_rgba(0,0,0,0.45)]"
-        style={{ transform: `scale(${scale})` }}
+        className="relative origin-center overflow-hidden rounded-[32px] bg-white shadow-[0_24px_90px_rgba(0,0,0,0.45)]"
+        style={{
+          height: `${PHONE_FRAME_HEIGHT}px`,
+          transform: `scale(${scale})`,
+          width: `${PHONE_FRAME_WIDTH}px`,
+        }}
       >
         {children}
       </div>

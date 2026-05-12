@@ -20,8 +20,8 @@ const FIELD_PROMPTS: Record<FieldId, string> = {
 };
 
 const ERROR_PROMPTS: Record<SpeechRecognizerErrorCode, string> = {
-  unsupported: '这个页面暂时听不了语音。你可以手动填写，也能继续报名。',
-  'permission-denied': '暂时不能语音输入。你可以再试一次，或直接手动填写。',
+  unsupported: '你可以手动填写报名信息，也能继续报名。',
+  'permission-denied': '你可以手动填写报名信息，也能继续报名。',
   'no-speech': '刚才没听清。请靠近手机再说一次，或手动填写。',
   aborted: '刚才录音已结束。你可以再说一次，或手动填写报名信息。',
   network: '网络不太稳定，刚才没有整理成功。你可以再试一次，或手动填写。',
@@ -65,7 +65,7 @@ export function createRecordingPrompt({
   transcriptText: string;
 }) {
   if (recordingState === 'requestingPermission') {
-    return '正在准备语音输入，稍后直接说报名信息就行。';
+    return null;
   }
 
   if (recordingState === 'recognizing') {

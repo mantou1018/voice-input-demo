@@ -63,7 +63,7 @@ function mapNativeError(error: string): SpeechRecognizerError {
     case 'not-allowed':
       return {
         code: 'permission-denied',
-        message: '暂时不能语音输入，请稍后重试或切换到系统浏览器。',
+        message: '你可以手动填写报名信息，也能继续报名。',
         recoverable: true,
       };
     case 'service-not-allowed':

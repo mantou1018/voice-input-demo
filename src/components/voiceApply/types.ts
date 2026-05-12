@@ -26,12 +26,13 @@ export type PositionPickerState = {
   selectedOption: string | null;
 };
 
-export type ApplyMode = 'recording' | 'extracting' | 'review' | 'error';
+export type ApplyMode = 'prepare' | 'recording' | 'extracting' | 'review' | 'error';
 
 export type ApplyScreenProps = {
   activeExtractionIndex: number;
   ageText: string;
   cityText: string;
+  transcriptText: string;
   isConfirmEnabled: boolean;
   isActive: boolean;
   isDoneEnabled: boolean;

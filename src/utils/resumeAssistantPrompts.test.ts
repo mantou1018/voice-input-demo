@@ -40,14 +40,14 @@ describe('createReviewPrompt', () => {
 });
 
 describe('createRecordingPrompt', () => {
-  it('guides permission, empty listening, supplemental listening, and recording completion', () => {
+  it('stays quiet while setup is pending, then guides empty listening, supplemental listening, and recording completion', () => {
     expect(
       createRecordingPrompt({
         hasExistingInfo: false,
         recordingState: 'requestingPermission',
         transcriptText: '',
       }),
-    ).toBe('正在准备语音输入，稍后直接说报名信息就行。');
+    ).toBeNull();
 
     expect(
       createRecordingPrompt({
@@ -93,15 +93,15 @@ describe('createErrorPrompt', () => {
         message: '当前浏览器暂不支持语音识别，请切换到支持的手机浏览器。',
         recoverable: true,
       }),
-    ).toBe('这个页面暂时听不了语音。你可以手动填写，也能继续报名。');
+    ).toBe('你可以手动填写报名信息，也能继续报名。');
 
     expect(
       createErrorPrompt({
         code: 'permission-denied',
-        message: '暂时不能语音输入。你可以再试一次。',
+        message: '暂时不可用。你可以再试一次。',
         recoverable: true,
       }),
-    ).toBe('暂时不能语音输入。你可以再试一次，或直接手动填写。');
+    ).toBe('你可以手动填写报名信息，也能继续报名。');
   });
 });
 
