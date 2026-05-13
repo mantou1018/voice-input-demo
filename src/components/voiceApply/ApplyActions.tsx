@@ -1,4 +1,6 @@
 import doneCheckSvg from '../../assets/done-check.svg';
+import micIconPng from '../../assets/mic-icon.png';
+import micIconReviewSvg from '../../assets/mic-icon-review.svg';
 import type { ApplyMode } from './types';
 
 type ApplyActionsProps = {
@@ -143,6 +145,36 @@ export function ApplyActions({
             type="button"
           >
             发送
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (showReview) {
+    return (
+      <div className="shrink-0 pt-[6px]">
+        <div className="flex gap-4">
+          <button
+            className="relative h-[48px] w-[102px] shrink-0 rounded-[24px] bg-white text-[15px] font-medium leading-[21px] text-[#222222] shadow-[0_0_0_1px_rgba(255,255,255,0.88)]"
+            onClick={onRetry}
+            type="button"
+          >
+            <img
+              alt=""
+              aria-hidden="true"
+              className="absolute left-[12px] top-[16px] h-[16px] w-[16px]"
+              src={micIconReviewSvg}
+            />
+            <span className="absolute left-[30px] top-[14px] w-[60px] text-left">继续补充</span>
+          </button>
+          <button
+            className="h-[48px] min-w-0 flex-1 rounded-[24px] bg-[linear-gradient(347deg,#5ff1ff_18.034%,#31f8c6_78.723%)] px-[24px] py-[13.5px] text-[15px] font-medium leading-[21px] text-[#222222] shadow-[0_10px_24px_rgba(49,248,198,0.16)]"
+            disabled={!isConfirmEnabled}
+            onClick={onConfirm}
+            type="button"
+          >
+            确认并报名
           </button>
         </div>
       </div>

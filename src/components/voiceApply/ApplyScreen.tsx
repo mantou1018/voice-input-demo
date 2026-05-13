@@ -58,22 +58,31 @@ export function ApplyScreen({
   onSelectPositionOption,
   positionPickerState,
 }: ApplyScreenProps) {
-  const usesInputShell = mode !== 'review';
   const isPrepareMode = mode === 'prepare';
   const isRecordingMode = mode === 'recording';
   const showExtracting = mode === 'extracting';
   const showReview = mode === 'review';
   const showError = mode === 'error';
+  const usesInputShell = mode !== 'review';
+  const usesBackButton = usesInputShell || showReview;
+  const topContentLayoutClass =
+    'px-[56px] pb-[max(18px,calc(env(safe-area-inset-bottom)+12px))] pt-[max(88px,calc(env(safe-area-inset-top)+44px))]';
   const hasTranscriptText = transcriptText.trim().length > 0;
   const hasFormContent =
     ageText.trim().length > 0 ||
     phoneText.trim().length > 0 ||
     cityText.trim().length > 0 ||
     positionText.trim().length > 0;
-  const headingTitle = hasFormContent ? '请确认您的信息' : '您可以这样对我说';
-  const headingSubtitle = hasFormContent
-    ? '点击上方信息可手动修改'
-    : '完善您的简历';
+  const headingTitle = showReview
+    ? '请确认信息'
+    : hasFormContent
+      ? '请确认信息'
+      : '您可以这样对我说';
+  const headingSubtitle = showReview
+    ? '完善您的简历'
+    : hasFormContent
+      ? '点击上方信息可手动修改'
+      : '完善您的简历';
   const isAgePickerOpen = editingField === 'age';
   const isCityPickerOpen = editingField === 'city';
   const isPhoneEditorOpen = editingField === 'phone';
@@ -82,16 +91,16 @@ export function ApplyScreen({
   return (
     <div className="absolute inset-0 z-30 overflow-hidden">
       <div
-        className={`${usesInputShell ? 'apply-input-surface' : 'apply-dialog-surface'} overlay-bg absolute inset-0 ${isActive ? 'overlay-bg--active' : ''}`}
+        className={`${showReview ? 'apply-input-surface' : usesInputShell ? 'apply-input-surface' : 'apply-dialog-surface'} overlay-bg absolute inset-0 ${isActive ? 'overlay-bg--active' : ''}`}
       />
 
       <button
-        aria-label={usesInputShell ? '返回' : '关闭'}
-        className={`overlay-content absolute z-20 h-[44px] w-[44px] ${usesInputShell ? 'left-[11px] top-[max(0px,env(safe-area-inset-top))]' : 'right-[20px] top-[max(44px,calc(env(safe-area-inset-top)+20px))]'} ${isActive ? 'overlay-content--active' : ''}`}
+        aria-label={usesBackButton ? '返回' : '关闭'}
+        className={`overlay-content absolute z-20 h-[44px] w-[44px] ${usesBackButton ? 'left-[11px] top-[max(44px,env(safe-area-inset-top))]' : 'right-[20px] top-[max(44px,calc(env(safe-area-inset-top)+20px))]'} ${isActive ? 'overlay-content--active' : ''}`}
         onClick={onClose}
         type="button"
       >
-        {usesInputShell ? (
+        {usesBackButton ? (
           <span
             aria-hidden="true"
             className="absolute left-[18px] top-[12px] block h-[18px] w-[18px] rotate-45 border-b-[2.5px] border-l-[2.5px] border-[#2a2d33]"
@@ -102,7 +111,7 @@ export function ApplyScreen({
       </button>
 
       <div
-        className={`overlay-content relative z-10 flex h-full flex-col ${usesInputShell ? 'px-[56px] pb-[max(18px,calc(env(safe-area-inset-bottom)+12px))] pt-[max(62px,calc(env(safe-area-inset-top)+18px))]' : 'px-[32px] pb-[max(18px,calc(env(safe-area-inset-bottom)+12px))] pt-[max(132px,calc(env(safe-area-inset-top)+108px))]'} ${isActive ? 'overlay-content--active' : ''}`}
+        className={`overlay-content relative z-10 flex h-full flex-col ${topContentLayoutClass} ${isActive ? 'overlay-content--active' : ''}`}
       >
         <div className="shrink-0">
           <p className={`m-0 ${usesInputShell ? 'text-[16px] leading-[22px] text-[#9c9c9c]' : 'text-[16px] leading-[22px] text-[#9c9c9c]'}`}>
@@ -126,7 +135,7 @@ export function ApplyScreen({
           showReview={showReview}
         />
 
-        <div className={`flex min-h-0 flex-1 flex-col justify-end ${usesInputShell ? 'mt-[36px]' : 'mt-[24px]'}`}>
+        <div className={`flex min-h-0 flex-1 flex-col ${usesInputShell ? 'mt-[36px] justify-end' : 'mt-[34px]'}`}>
           {showExtracting ? null : usesInputShell ? (
             <div
               className={`flex min-h-0 shrink items-end justify-center ${
@@ -142,8 +151,11 @@ export function ApplyScreen({
               )}
             </div>
           ) : (
-            <div className="min-h-0 shrink overflow-hidden">
-              <ChatMessageList chatMessages={chatMessages} />
+            <div className="-ml-[56px] relative h-[270px] w-[414px] shrink-0 overflow-hidden">
+              <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[8px] bg-[linear-gradient(180deg,#f1f4f6_0%,#f1f4f6_49.615%,rgba(241,244,246,0)_100%)]" />
+              <div className="flex h-full flex-col justify-end pb-[74px]">
+                <ChatMessageList chatMessages={chatMessages} horizontalPadding={19} />
+              </div>
             </div>
           )}
         </div>

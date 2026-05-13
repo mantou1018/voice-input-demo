@@ -41,9 +41,8 @@ export function RecordingSpeechBubble({ text }: { text: string }) {
 
 function AssistantBubble({ children }: { children: ReactNode }) {
   return (
-    <div className="flex w-full items-start gap-[4px]">
-      <img alt="" className="h-[20px] w-[20px] shrink-0" src={listeningStarSvg} />
-      <div className="max-w-[326px] rounded-bl-[12px] rounded-br-[12px] rounded-tl-[2px] rounded-tr-[12px] bg-[#ffffff] px-[12px] py-[10px] shadow-[0_0_10px_rgba(49,68,82,0.05)]">
+    <div className="flex w-full items-start">
+      <div className="w-full max-w-[376px] rounded-bl-[12px] rounded-br-[12px] rounded-tl-[12px] rounded-tr-[12px] bg-[#ffffff] px-[16px] py-[10px] shadow-[0_0_10px_rgba(49,68,82,0.05)]">
         <div className="text-[17px] leading-[1.6] text-[#222222]">{children}</div>
       </div>
     </div>
@@ -79,14 +78,20 @@ export function UserBubble({ text }: { text: string }) {
 export function ChatMessageList({
   chatMessages,
   offsetTop = 0,
+  horizontalPadding = 19,
 }: {
   chatMessages: ChatMessage[];
   offsetTop?: number;
+  horizontalPadding?: number;
 }) {
   return (
     <div
-      className="flex flex-col gap-[20px] px-[19px]"
-      style={offsetTop ? { marginTop: `${offsetTop}px` } : undefined}
+      className="flex flex-col gap-[20px]"
+      style={{
+        marginTop: offsetTop || undefined,
+        paddingLeft: horizontalPadding,
+        paddingRight: horizontalPadding,
+      }}
     >
       {chatMessages.map((message) => (
         <div

@@ -23,6 +23,10 @@ export function ResumePromptForm({
   onOpenPhoneEditor,
   onOpenPositionPicker,
 }: ResumePromptFormProps) {
+  const hasAgeText = ageText.trim().length > 0;
+  const hasPhoneText = phoneText.trim().length > 0;
+  const hasCityText = cityText.trim().length > 0;
+  const hasPositionText = positionText.trim().length > 0;
   const fieldTextClass = recordingStyle
     ? 'text-[20px] leading-[normal] text-[#666666]'
     : 'text-[20px] leading-7 text-[#666666]';
@@ -50,7 +54,7 @@ export function ResumePromptForm({
         />
         <span className={`mb-[2px] block h-px w-[35px] ${lineClass}`} />
         <span>岁，</span>
-        {showReview && ageText ? (
+        {hasAgeText ? (
           <button
             className={`absolute left-[70px] top-0 ${valueTextClass}`}
             onClick={onOpenAgePicker}
@@ -70,7 +74,7 @@ export function ResumePromptForm({
         />
         <span className={`mb-[2px] block min-w-0 flex-1 border-b ${recordingStyle ? 'border-[#d7d9de]' : 'border-[#d9dfe8]'}`} />
         <span>，</span>
-        {showReview && phoneText ? (
+        {hasPhoneText ? (
           <button
             className={`absolute top-0 ${recordingStyle ? 'left-[128px]' : 'left-[141px]'} ${valueTextClass}`}
             onClick={onOpenPhoneEditor}
@@ -90,10 +94,10 @@ export function ResumePromptForm({
         />
         <span className={`mb-[2px] block min-w-0 flex-1 border-b ${recordingStyle ? 'border-[#d7d9de]' : 'border-[#d9dfe8]'}`} />
         <span>，</span>
-        {!showReview ? (
+        {!hasCityText ? (
           <span className={`absolute ${recordingStyle ? 'left-[151px] top-[4px]' : 'left-[151px] top-1'} ${placeholderTextClass}`}>市/区/县（最多3个）</span>
         ) : null}
-        {showReview && cityText ? (
+        {hasCityText ? (
           <button
             className={`absolute top-0 ${recordingStyle ? 'left-[152px]' : 'left-[165px]'} ${valueTextClass}`}
             onClick={onOpenCityPicker}
@@ -113,10 +117,10 @@ export function ResumePromptForm({
         />
         <span className={`mb-[2px] block min-w-0 flex-1 border-b ${recordingStyle ? 'border-[#d7d9de]' : 'border-[#d9dfe8]'}`} />
         <span>。</span>
-        {!showReview && recordingStyle ? (
+        {!hasPositionText && recordingStyle ? (
           <span className="absolute left-[175px] top-[4px] text-[14px] leading-5 text-[rgba(156,156,156,0.8)]">（最多5个）</span>
         ) : null}
-        {showReview && positionText ? (
+        {hasPositionText ? (
           <button
             className={`absolute top-0 ${recordingStyle ? 'left-[152px]' : 'left-[195px]'} ${valueTextClass}`}
             onClick={onOpenPositionPicker}

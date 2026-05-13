@@ -108,6 +108,11 @@ export default function App() {
     resolvePositionPickerState(''),
   );
   const chatTimeoutRef = useRef<number | null>(null);
+  const previewMode =
+    typeof window !== 'undefined' && import.meta.env.DEV
+      ? new URLSearchParams(window.location.search).get('preview')
+      : null;
+  const isReviewPreview = previewMode === 'review';
   const isDoneEnabled = transcriptText.trim().length > 0;
   const extractionItems = analysis?.extractionItems;
   const detectedAgeText = normalizeAgeDisplay(getDetectedValue(extractionItems, 'age'));
@@ -132,6 +137,31 @@ export default function App() {
       : phase === 'review'
         ? 'review'
         : 'recording';
+  const previewChatMessages: ChatMessage[] = isReviewPreview
+    ? [
+      {
+        id: 'preview-review-user',
+        role: 'user',
+        text: '北京',
+        state: 'stable',
+      },
+      {
+        id: 'preview-review-assistant',
+        role: 'assistant',
+        text: '识别成功，请确认您的报名信息。如需修改，您可点击上方横线手动填写或语音补充',
+        state: 'stable',
+      },
+      ]
+    : chatMessages;
+  const resolvedAgeText = isReviewPreview ? '36' : ageText;
+  const resolvedPhoneText = isReviewPreview ? '' : phoneText;
+  const resolvedCityText = isReviewPreview ? '北京、上海' : cityText;
+  const resolvedPositionText = isReviewPreview ? '' : positionText;
+  const resolvedOverlayVisible = isReviewPreview || overlayVisible;
+  const resolvedOverlayActive = isReviewPreview || overlayActive;
+  const resolvedOverlayMode: ApplyMode = isReviewPreview ? 'review' : overlayMode;
+  const resolvedIsConfirmEnabled = isReviewPreview ? true : isConfirmEnabled;
+  const resolvedIsDoneEnabled = isReviewPreview ? true : isDoneEnabled;
 
   function settleChatMessages() {
     if (chatTimeoutRef.current) {
@@ -243,6 +273,13 @@ export default function App() {
   }
 
   function closeApplyScreen() {
+    if (isReviewPreview) {
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.delete('preview');
+      window.location.href = nextUrl.toString();
+      return;
+    }
+
     actions.closeOverlay();
     setOverlayActive(false);
     setEditingField(null);
@@ -434,18 +471,18 @@ export default function App() {
     <PhoneShell>
       <JobScreen onApply={startApplyFlow} />
       {hasApplied ? <SuccessScreen onClose={closeSuccessScreen} /> : null}
-      {overlayVisible ? (
+      {resolvedOverlayVisible ? (
         <ApplyScreen
           activeExtractionIndex={activeExtractionIndex}
-          ageText={ageText}
-          chatMessages={chatMessages}
+          ageText={resolvedAgeText}
+          chatMessages={previewChatMessages}
           cityPickerState={cityPickerState}
-          cityText={cityText}
+          cityText={resolvedCityText}
           editingField={editingField}
-          isActive={overlayActive}
-          isConfirmEnabled={isConfirmEnabled}
-          isDoneEnabled={isDoneEnabled}
-          mode={overlayMode}
+          isActive={resolvedOverlayActive}
+          isConfirmEnabled={resolvedIsConfirmEnabled}
+          isDoneEnabled={resolvedIsDoneEnabled}
+          mode={resolvedOverlayMode}
           onChangePhoneInput={changePhoneInput}
           onClose={closeApplyScreen}
           onCloseAgePicker={() => setEditingField(null)}
@@ -482,10 +519,10 @@ export default function App() {
           }
           onSelectProvince={selectProvince}
           phoneInputValue={phoneInputValue}
-          phoneText={phoneText}
+          phoneText={resolvedPhoneText}
           pendingUserMessage={submittedTranscript}
           positionPickerState={positionPickerState}
-          positionText={positionText}
+          positionText={resolvedPositionText}
           selectedAge={selectedAge}
           transcriptText={transcriptText}
         />
