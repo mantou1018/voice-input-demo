@@ -65,9 +65,9 @@ export function AssistantStatusBubble({ text }: { text: string }) {
 
 export function UserBubble({ text }: { text: string }) {
   return (
-    <div className="flex w-full">
+    <div className="flex w-full justify-end">
       <div
-        className="w-full rounded-bl-[16px] rounded-br-[16px] rounded-tl-[16px] rounded-tr-[2px] px-[16px] py-[12px]"
+        className="inline-flex max-w-[376px] rounded-bl-[16px] rounded-br-[16px] rounded-tl-[16px] rounded-tr-[2px] px-[16px] py-[12px]"
         style={{ backgroundImage: 'linear-gradient(93.86189773488236deg, rgb(128, 244, 255) 38.2%, rgb(124, 248, 217) 76.432%)' }}
       >
         <p className="m-0 break-words text-[17px] leading-[24px] text-[#1a1f28]">{text}</p>

@@ -127,14 +127,7 @@ export function ApplyScreen({
         />
 
         <div className={`flex min-h-0 flex-1 flex-col justify-end ${usesInputShell ? 'mt-[36px]' : 'mt-[24px]'}`}>
-          {showExtracting ? (
-            <div className="flex min-h-0 shrink flex-col justify-end pb-[84px]">
-              <div className="flex flex-col gap-[20px] px-[19px]">
-                {pendingUserMessage ? <UserBubble text={pendingUserMessage} /> : null}
-                <AssistantStatusBubble text="正在识别您的信息" />
-              </div>
-            </div>
-          ) : usesInputShell ? (
+          {showExtracting ? null : usesInputShell ? (
             <div
               className={`flex min-h-0 shrink items-end justify-center ${
                 isRecordingMode && hasTranscriptText
@@ -155,6 +148,18 @@ export function ApplyScreen({
           )}
         </div>
       </div>
+
+      {showExtracting ? (
+        <div
+          className={`overlay-content absolute left-0 top-[462px] z-10 h-[270px] w-full ${isActive ? 'overlay-content--active' : ''}`}
+        >
+          <div className="absolute inset-x-0 top-0 h-[8px] bg-[linear-gradient(180deg,#f1f4f6_0%,#f1f4f6_49.615%,rgba(241,244,246,0)_100%)]" />
+          <div className="absolute left-[19px] top-[-34px] flex w-[376px] flex-col gap-[20px]">
+            {pendingUserMessage ? <UserBubble text={pendingUserMessage} /> : null}
+            <AssistantStatusBubble text="正在识别您的信息" />
+          </div>
+        </div>
+      ) : null}
 
       <div
         className={`overlay-content absolute bottom-[max(18px,calc(env(safe-area-inset-bottom)+12px))] left-[19px] right-[19px] z-20 ${isActive ? 'overlay-content--active' : ''}`}
