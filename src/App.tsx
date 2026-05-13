@@ -85,6 +85,7 @@ export default function App() {
     hasApplied,
     phase,
     recordingState,
+    submittedTranscript,
     transcriptText,
     updateFeedback,
   } = useVoiceSession();
@@ -211,7 +212,18 @@ export default function App() {
         { removeTexts: [RECOGNIZING_CHAT_TEXT] },
       );
     }
-  }, [ageText, cityText, error, overlayMode, overlayVisible, phoneText, positionText, recordingState, transcriptText, updateFeedback]);
+  }, [
+    ageText,
+    cityText,
+    error,
+    overlayMode,
+    overlayVisible,
+    phoneText,
+    positionText,
+    recordingState,
+    transcriptText,
+    updateFeedback,
+  ]);
 
   function startApplyFlow() {
     setOverlayVisible(true);
@@ -251,9 +263,6 @@ export default function App() {
   }
 
   function finishRecording() {
-    if (transcriptText.trim()) {
-      pushChatMessage('user', transcriptText.trim());
-    }
     actions.finishHoldToTalk(false);
   }
 
@@ -474,6 +483,7 @@ export default function App() {
           onSelectProvince={selectProvince}
           phoneInputValue={phoneInputValue}
           phoneText={phoneText}
+          pendingUserMessage={submittedTranscript}
           positionPickerState={positionPickerState}
           positionText={positionText}
           selectedAge={selectedAge}

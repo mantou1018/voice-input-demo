@@ -85,6 +85,7 @@ export function useVoiceSession() {
   const [hasApplied, setHasApplied] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [updateFeedback, setUpdateFeedback] = useState<string | null>(null);
+  const [submittedTranscript, setSubmittedTranscript] = useState('');
 
   const isSupported = useMemo(() => adapterRef.current.isSupported(), []);
   const transcriptText = composeTranscript(transcriptChunks, interimText);
@@ -219,6 +220,10 @@ export function useVoiceSession() {
     setInterimText('');
   }
 
+  function resetSubmittedTranscript() {
+    setSubmittedTranscript('');
+  }
+
   function clearPendingTransitions() {
     pendingTimeoutsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
     pendingTimeoutsRef.current = [];
@@ -263,6 +268,7 @@ export function useVoiceSession() {
     setError(null);
     setCard(null);
     resetTranscript();
+    resetSubmittedTranscript();
     resetAnalysisState();
     setPhase('intro');
     setRecordingState('idle');
@@ -276,6 +282,7 @@ export function useVoiceSession() {
     clearAutoSendTimeout();
     adapterRef.current.abort();
     resetTranscript();
+    resetSubmittedTranscript();
     setCard(null);
     resetAnalysisState();
     setError(null);
@@ -299,6 +306,7 @@ export function useVoiceSession() {
     ignoreAbortErrorRef.current = false;
     finalizeOnStopRef.current = false;
     resetTranscript();
+    resetSubmittedTranscript();
     if (!preserveExisting) {
       setCard(null);
       resetAnalysisState();
@@ -347,6 +355,7 @@ export function useVoiceSession() {
     clearAutoSendTimeout();
     adapterRef.current.abort();
     resetTranscript();
+    resetSubmittedTranscript();
     if (!preserveExistingRef.current) {
       resetAnalysisState();
     } else {
@@ -399,6 +408,7 @@ export function useVoiceSession() {
       return;
     }
 
+    setSubmittedTranscript(transcript);
     setRecordingState('summarizing');
     setPhase('extracting');
     setActiveExtractionIndex(-1);
@@ -477,6 +487,7 @@ export function useVoiceSession() {
     setPhase('job');
     setRecordingState('idle');
     resetTranscript();
+    resetSubmittedTranscript();
     resetAnalysisState();
 
     successToastTimeoutRef.current = window.setTimeout(() => {
@@ -497,6 +508,7 @@ export function useVoiceSession() {
     showSuccessToast,
     updateFeedback,
     transcriptText,
+    submittedTranscript,
     analysis,
     activeExtractionIndex,
     actions: {

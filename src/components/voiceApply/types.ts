@@ -32,6 +32,7 @@ export type ApplyScreenProps = {
   activeExtractionIndex: number;
   ageText: string;
   cityText: string;
+  pendingUserMessage: string;
   transcriptText: string;
   isConfirmEnabled: boolean;
   isActive: boolean;

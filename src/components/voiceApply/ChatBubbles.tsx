@@ -50,7 +50,7 @@ function AssistantBubble({ children }: { children: ReactNode }) {
   );
 }
 
-function AssistantStatusBubble({ text }: { text: string }) {
+export function AssistantStatusBubble({ text }: { text: string }) {
   return (
     <div className="flex w-full items-start">
       <div className="rounded-bl-[12px] rounded-br-[12px] rounded-tl-[2px] rounded-tr-[12px] bg-white px-[16px] py-[10px] shadow-[0_0_10px_rgba(49,68,82,0.05)]">
@@ -63,7 +63,7 @@ function AssistantStatusBubble({ text }: { text: string }) {
   );
 }
 
-function UserBubble({ text }: { text: string }) {
+export function UserBubble({ text }: { text: string }) {
   return (
     <div className="flex w-full">
       <div
@@ -76,9 +76,18 @@ function UserBubble({ text }: { text: string }) {
   );
 }
 
-export function ChatMessageList({ chatMessages }: { chatMessages: ChatMessage[] }) {
+export function ChatMessageList({
+  chatMessages,
+  offsetTop = 0,
+}: {
+  chatMessages: ChatMessage[];
+  offsetTop?: number;
+}) {
   return (
-    <div className="flex flex-col gap-[20px] px-[19px]">
+    <div
+      className="flex flex-col gap-[20px] px-[19px]"
+      style={offsetTop ? { marginTop: `${offsetTop}px` } : undefined}
+    >
       {chatMessages.map((message) => (
         <div
           className={`chat-message ${message.state === 'entering' ? 'chat-message--entering' : ''} ${message.state === 'exiting' ? 'chat-message--exiting' : ''}`}

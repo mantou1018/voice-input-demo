@@ -1,7 +1,13 @@
 import closeIconPng from '../../assets/close-icon.png';
 import { ApplyActions } from './ApplyActions';
 import { AgePickerSheet } from './AgePickerSheet';
-import { ChatMessageList, ListeningPrompt, RecordingSpeechBubble } from './ChatBubbles';
+import {
+  AssistantStatusBubble,
+  ChatMessageList,
+  ListeningPrompt,
+  RecordingSpeechBubble,
+  UserBubble,
+} from './ChatBubbles';
 import { CityPickerSheet } from './CityPickerSheet';
 import { PhoneEditorSheet } from './PhoneEditorSheet';
 import { PositionPickerSheet } from './PositionPickerSheet';
@@ -12,6 +18,7 @@ export function ApplyScreen({
   activeExtractionIndex: _activeExtractionIndex,
   ageText,
   cityText,
+  pendingUserMessage,
   isConfirmEnabled,
   isActive,
   isDoneEnabled,
@@ -121,8 +128,11 @@ export function ApplyScreen({
 
         <div className={`flex min-h-0 flex-1 flex-col justify-end ${usesInputShell ? 'mt-[36px]' : 'mt-[24px]'}`}>
           {showExtracting ? (
-            <div className="min-h-0 shrink overflow-hidden pb-[118px]">
-              <ChatMessageList chatMessages={chatMessages} />
+            <div className="flex min-h-0 shrink flex-col justify-end pb-[84px]">
+              <div className="flex flex-col gap-[20px] px-[19px]">
+                {pendingUserMessage ? <UserBubble text={pendingUserMessage} /> : null}
+                <AssistantStatusBubble text="正在识别您的信息" />
+              </div>
             </div>
           ) : usesInputShell ? (
             <div
