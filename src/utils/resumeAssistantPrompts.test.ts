@@ -1,13 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   createErrorPrompt,
-  createManualEditFeedback,
   createRecordingPrompt,
   createReviewPrompt,
 } from './resumeAssistantPrompts';
 
 describe('createReviewPrompt', () => {
-  it('asks for the highest-priority missing field first', () => {
+  it('lists multiple missing fields and then gives a focused next step', () => {
     expect(
       createReviewPrompt({
         ageText: '',
@@ -15,7 +14,7 @@ describe('createReviewPrompt', () => {
         phoneText: '',
         positionText: '',
       }),
-    ).toBe('这次还没整理出报名信息。还差手机号。请只说11位手机号，方便招聘方联系你。');
+    ).toBe('刚才没整理出有效报名信息。你可以重新说一遍，或直接手动填写。');
 
     expect(
       createReviewPrompt({
@@ -24,7 +23,18 @@ describe('createReviewPrompt', () => {
         phoneText: '13800138000',
         positionText: '',
       }),
-    ).toBe('我先听到了手机号。还差意向职位。想找什么工作？比如普工、包装工、保安、司机。');
+    ).toBe('还需要补充意向职位、工作地点、年龄。可以一句话说完，也可以点击上方逐项填写。');
+  });
+
+  it('uses short copy when only one field is missing', () => {
+    expect(
+      createReviewPrompt({
+        ageText: '',
+        cityText: '北京',
+        phoneText: '13800138000',
+        positionText: '包装工',
+      }),
+    ).toBe('年龄也可以补一下，比如“我32岁”。');
   });
 
   it('confirms complete information', () => {
@@ -102,12 +112,5 @@ describe('createErrorPrompt', () => {
         recoverable: true,
       }),
     ).toBe('你可以手动填写报名信息，也能继续报名。');
-  });
-});
-
-describe('createManualEditFeedback', () => {
-  it('confirms exact edited values', () => {
-    expect(createManualEditFeedback('手机号', '13800138000', '')).toBe('手机号已改为13800138000。');
-    expect(createManualEditFeedback('手机号', '13800138000', '13800138000')).toBe('手机号已确认。');
   });
 });

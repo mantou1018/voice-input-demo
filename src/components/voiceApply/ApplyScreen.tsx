@@ -26,6 +26,7 @@ export function ApplyScreen({
   onClose,
   onConfirm,
   onConfirmCityPicker,
+  onCityPickerToastMessage,
   onDone,
   onRetry,
   cityPickerState,
@@ -51,11 +52,11 @@ export function ApplyScreen({
   onResetCityPicker,
   onResetPositionPicker,
   onSelectAge,
-  onSelectCity,
-  onSelectDistrict,
+  onRemoveCity,
   onSelectProvince,
   onSelectPositionCategory,
   onSelectPositionOption,
+  onToggleCity,
   positionPickerState,
 }: ApplyScreenProps) {
   const isPrepareMode = mode === 'prepare';
@@ -215,10 +216,11 @@ export function ApplyScreen({
           cityPickerState={cityPickerState}
           onClose={onCloseCityPicker}
           onConfirm={onConfirmCityPicker}
+          toastMessage={onCityPickerToastMessage}
+          onRemoveCity={onRemoveCity}
           onReset={onResetCityPicker}
-          onSelectCity={onSelectCity}
-          onSelectDistrict={onSelectDistrict}
           onSelectProvince={onSelectProvince}
+          onToggleCity={onToggleCity}
         />
       ) : null}
 

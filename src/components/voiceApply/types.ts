@@ -9,15 +9,18 @@ export type ManualEdits = {
   position: string | null;
 };
 
+export type CityPickerSelectedItem = {
+  key: string;
+  provinceId: string;
+  provinceLabel: string;
+  cityId: string;
+  cityLabel: string;
+};
+
 export type CityPickerState = {
-  initialSelection: {
-    provinceId: string;
-    cityId: string;
-    districtId: string | null;
-  };
+  initialSelectedItems: CityPickerSelectedItem[];
   selectedProvinceId: string;
-  selectedCityId: string;
-  selectedDistrictId: string | null;
+  selectedItems: CityPickerSelectedItem[];
 };
 
 export type PositionPickerState = {
@@ -41,6 +44,7 @@ export type ApplyScreenProps = {
   onClose: () => void;
   onConfirm: () => void;
   onConfirmCityPicker: () => void;
+  onCityPickerToastMessage?: string | null;
   onDone: () => void;
   onRetry: () => void;
   cityPickerState: CityPickerState;
@@ -65,8 +69,8 @@ export type ApplyScreenProps = {
   onResetCityPicker: () => void;
   onResetPositionPicker: () => void;
   onSelectAge: (age: string) => void;
-  onSelectCity: (cityId: string) => void;
-  onSelectDistrict: (districtId: string) => void;
+  onRemoveCity: (cityKey: string) => void;
+  onToggleCity: (cityId: string) => void;
   onSelectProvince: (provinceId: string) => void;
   onSelectPositionCategory: (categoryId: string) => void;
   onSelectPositionOption: (option: string) => void;

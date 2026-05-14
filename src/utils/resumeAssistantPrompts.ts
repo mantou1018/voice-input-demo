@@ -13,10 +13,10 @@ const FIELD_LABELS: Record<FieldId, string> = {
 };
 
 const FIELD_PROMPTS: Record<FieldId, string> = {
-  phone: '还差手机号。请只说11位手机号，方便招聘方联系你。',
-  position: '还差意向职位。想找什么工作？比如普工、包装工、保安、司机。',
-  city: '还差工作地点。想在哪工作？说城市或区县都可以。',
-  age: '还差年龄。可以说“我32岁”。',
+  phone: '为了让招聘方联系你，请补充11位手机号。',
+  position: '想找什么工作？可以说普工、包装工、保安、司机。',
+  city: '想在哪工作？说城市或区县都可以。',
+  age: '年龄也可以补一下，比如“我32岁”。',
 };
 
 const ERROR_PROMPTS: Record<SpeechRecognizerErrorCode, string> = {
@@ -28,12 +28,6 @@ const ERROR_PROMPTS: Record<SpeechRecognizerErrorCode, string> = {
   'audio-capture': '暂时没有听到声音。你可以再试一次，或直接手动填写。',
   'recognition-failed': '刚才没有整理成功。你可以再试一次，或手动填写报名信息。',
 };
-
-function getPresentFieldLabels(fields: FieldTexts) {
-  return (['phone', 'position', 'city', 'age'] as const)
-    .filter((fieldId) => fields[fieldId].trim().length > 0)
-    .map((fieldId) => FIELD_LABELS[fieldId]);
-}
 
 function getNextMissingField(fields: FieldTexts): FieldId | null {
   if (!fields.phone) {
@@ -53,6 +47,12 @@ function getNextMissingField(fields: FieldTexts): FieldId | null {
   }
 
   return null;
+}
+
+function getMissingFields(fields: FieldTexts) {
+  return (['phone', 'position', 'city', 'age'] as const).filter(
+    (fieldId) => !fields[fieldId].trim(),
+  );
 }
 
 export function createRecordingPrompt({
@@ -100,18 +100,23 @@ export function createReviewPrompt({
     phone: phoneText,
     position: positionText,
   };
-  const presentLabels = getPresentFieldLabels(fields);
+  const missingFields = getMissingFields(fields);
   const nextMissingField = getNextMissingField(fields);
 
   if (!nextMissingField) {
     return '信息整理好了，确认无误后就可以报名。';
   }
 
-  if (!presentLabels.length) {
-    return `这次还没整理出报名信息。${FIELD_PROMPTS[nextMissingField]}`;
+  if (missingFields.length === 4) {
+    return '刚才没整理出有效报名信息。你可以重新说一遍，或直接手动填写。';
   }
 
-  return `我先听到了${presentLabels.join('、')}。${FIELD_PROMPTS[nextMissingField]}`;
+  if (missingFields.length > 1) {
+    const missingLabels = missingFields.map((fieldId) => FIELD_LABELS[fieldId]).join('、');
+    return `还需要补充${missingLabels}。可以一句话说完，也可以点击上方逐项填写。`;
+  }
+
+  return FIELD_PROMPTS[nextMissingField];
 }
 
 export function createErrorPrompt(error: SpeechRecognizerError | null) {
@@ -120,12 +125,4 @@ export function createErrorPrompt(error: SpeechRecognizerError | null) {
   }
 
   return ERROR_PROMPTS[error.code] ?? error.message;
-}
-
-export function createManualEditFeedback(label: string, nextValue: string, previousValue: string) {
-  if (nextValue === previousValue) {
-    return `${label}已确认。`;
-  }
-
-  return `${label}已改为${nextValue}。`;
 }

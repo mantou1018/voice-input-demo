@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createSpeechRecognizerAdapter } from '../lib/speech/createSpeechRecognizerAdapter';
 import { analyzeResumeWithAgent } from '../lib/resumeAgentClient';
-import { createResumeUpdateFeedback } from '../utils/resumeUpdateFeedback';
 import type {
   RecordingSessionState,
   ResumeAnalysis,
@@ -84,7 +83,6 @@ export function useVoiceSession() {
   const [activeExtractionIndex, setActiveExtractionIndex] = useState(-1);
   const [hasApplied, setHasApplied] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const [updateFeedback, setUpdateFeedback] = useState<string | null>(null);
   const [submittedTranscript, setSubmittedTranscript] = useState('');
 
   const isSupported = useMemo(() => adapterRef.current.isSupported(), []);
@@ -257,7 +255,6 @@ export function useVoiceSession() {
     analysisRef.current = null;
     setAnalysis(null);
     setActiveExtractionIndex(-1);
-    setUpdateFeedback(null);
   }
 
   function openApply() {
@@ -290,6 +287,16 @@ export function useVoiceSession() {
     setRecordingState('idle');
   }
 
+  function resetApplyState() {
+    closeOverlay();
+    setHasApplied(false);
+    setShowSuccessToast(false);
+    if (successToastTimeoutRef.current) {
+      window.clearTimeout(successToastTimeoutRef.current);
+      successToastTimeoutRef.current = null;
+    }
+  }
+
   async function startHoldToTalk(options?: { preserveExisting?: boolean }) {
     if (!isSupported) {
       setError(createUnsupportedError());
@@ -313,7 +320,6 @@ export function useVoiceSession() {
     } else {
       clearPendingTransitions();
       setActiveExtractionIndex(-1);
-      setUpdateFeedback(null);
     }
     setError(null);
     setRecordingState('requestingPermission');
@@ -447,12 +453,6 @@ export function useVoiceSession() {
         ? mergeResumeAnalysis(previousAnalysis, nextAnalysis)
         : nextAnalysis;
 
-    setUpdateFeedback(
-      shouldPreserveExisting && previousAnalysis
-        ? createResumeUpdateFeedback(previousAnalysis, nextAnalysis)
-        : null,
-    );
-
     analysisRef.current = mergedAnalysis;
     setAnalysis(mergedAnalysis);
     setCard(mergedAnalysis.card);
@@ -506,7 +506,6 @@ export function useVoiceSession() {
     phase,
     recordingState,
     showSuccessToast,
-    updateFeedback,
     transcriptText,
     submittedTranscript,
     analysis,
@@ -515,6 +514,7 @@ export function useVoiceSession() {
       closeOverlay,
       finishHoldToTalk,
       openApply,
+      resetApplyState,
       startHoldToTalk,
       submitCard,
     },

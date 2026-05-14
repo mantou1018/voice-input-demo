@@ -41,7 +41,7 @@ function limitJoinedValues(value: string, maxCount: number) {
     return '';
   }
 
-  return [...new Set(parts)].slice(-maxCount).join('、');
+  return [...new Set(parts)].slice(0, maxCount).join('、');
 }
 
 function normalizeField(

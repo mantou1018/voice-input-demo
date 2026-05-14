@@ -56,7 +56,7 @@ export function ResumePromptForm({
         <span>岁，</span>
         {hasAgeText ? (
           <button
-            className={`absolute left-[70px] top-0 ${valueTextClass}`}
+            className={`absolute left-[70px] top-0 w-[35px] overflow-hidden text-ellipsis whitespace-nowrap text-left ${valueTextClass}`}
             onClick={onOpenAgePicker}
             type="button"
           >
@@ -76,7 +76,7 @@ export function ResumePromptForm({
         <span>，</span>
         {hasPhoneText ? (
           <button
-            className={`absolute top-0 ${recordingStyle ? 'left-[128px]' : 'left-[141px]'} ${valueTextClass}`}
+            className={`absolute top-0 ${recordingStyle ? 'left-[128px] w-[160px]' : 'left-[141px] w-[166px]'} overflow-hidden text-ellipsis whitespace-nowrap text-left ${valueTextClass}`}
             onClick={onOpenPhoneEditor}
             type="button"
           >
@@ -99,7 +99,7 @@ export function ResumePromptForm({
         ) : null}
         {hasCityText ? (
           <button
-            className={`absolute top-0 ${recordingStyle ? 'left-[152px]' : 'left-[165px]'} ${valueTextClass}`}
+            className={`absolute top-0 ${recordingStyle ? 'left-[152px] w-[136px]' : 'left-[165px] w-[142px]'} overflow-hidden text-ellipsis whitespace-nowrap text-left ${valueTextClass}`}
             onClick={onOpenCityPicker}
             type="button"
           >
@@ -122,7 +122,7 @@ export function ResumePromptForm({
         ) : null}
         {hasPositionText ? (
           <button
-            className={`absolute top-0 ${recordingStyle ? 'left-[152px]' : 'left-[195px]'} ${valueTextClass}`}
+            className={`absolute top-0 ${recordingStyle ? 'left-[152px] w-[136px]' : 'left-[195px] w-[112px]'} overflow-hidden text-ellipsis whitespace-nowrap text-left ${valueTextClass}`}
             onClick={onOpenPositionPicker}
             type="button"
           >

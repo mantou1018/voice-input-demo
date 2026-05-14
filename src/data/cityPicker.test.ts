@@ -9,16 +9,24 @@ import {
 } from './cityPicker';
 
 describe('city picker helpers', () => {
-  it('finds a configured province-city-district selection from the display text', () => {
-    expect(findCityPickerSelection('广东 / 深圳 / 南山区')).toEqual({
-      provinceId: '44',
-      cityId: '4403',
-      districtId: '440305',
-    });
+  it('finds configured province-city selections from display text', () => {
+    expect(findCityPickerSelection('广东-深圳、云南-昆明')).toEqual([
+      {
+        provinceId: '44',
+        cityId: '4403',
+      },
+      {
+        provinceId: '53',
+        cityId: '5301',
+      },
+    ]);
   });
 
-  it('formats a selection into the display value', () => {
-    expect(formatCityPickerValue('11', '1101', '110105')).toBe('北京 / 北京 / 朝阳区');
+  it('formats selections into the display value', () => {
+    expect(formatCityPickerValue([
+      { provinceId: '11', cityId: '1101' },
+      { provinceId: '31', cityId: '3101' },
+    ])).toBe('北京、上海');
   });
 
   it('returns defaults when province or city ids are unknown', () => {
@@ -37,20 +45,23 @@ describe('city picker helpers', () => {
     expect(CITY_PICKER_PROVINCES).toHaveLength(34);
     expect(cityCount).toBe(367);
     expect(districtCount).toBe(3439);
-    expect(findCityPickerSelection('新疆 / 乌鲁木齐 / 天山区')).toEqual({
-      provinceId: '65',
-      cityId: '6501',
-      districtId: '650102',
-    });
-    expect(findCityPickerSelection('香港 / 香港岛 / 中西区')).toEqual({
-      provinceId: '81',
-      cityId: '8101',
-      districtId: '810101',
-    });
-    expect(findCityPickerSelection('台湾 / 台北 / 大安区')).toEqual({
-      provinceId: '71',
-      cityId: '7101',
-      districtId: '710101',
-    });
+    expect(findCityPickerSelection('新疆-乌鲁木齐')).toEqual([
+      {
+        provinceId: '65',
+        cityId: '6501',
+      },
+    ]);
+    expect(findCityPickerSelection('香港-香港岛')).toEqual([
+      {
+        provinceId: '81',
+        cityId: '8101',
+      },
+    ]);
+    expect(findCityPickerSelection('台湾-台北')).toEqual([
+      {
+        provinceId: '71',
+        cityId: '7101',
+      },
+    ]);
   });
 });

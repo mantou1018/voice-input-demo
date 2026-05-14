@@ -6,6 +6,7 @@ import { SuccessScreen } from './components/voiceApply/SuccessScreen';
 import type {
   ApplyMode,
   CityPickerState,
+  CityPickerSelectedItem,
   EditableField,
   ManualEdits,
   PositionPickerState,
@@ -14,7 +15,6 @@ import {
   DEFAULT_CITY_PICKER_PROVINCE_ID,
   findCityPickerSelection,
   formatCityPickerValue,
-  getCityPickerCity,
   getCityPickerProvince,
 } from './data/cityPicker';
 import {
@@ -33,7 +33,6 @@ import {
 import { isCompletePhoneNumber, normalizePhoneInput } from './utils/phoneInput';
 import {
   createErrorPrompt,
-  createManualEditFeedback,
   createRecordingPrompt,
   createReviewPrompt,
   RECOGNIZING_CHAT_TEXT,
@@ -41,6 +40,7 @@ import {
 
 const CHAT_LIMIT = 2;
 const CHAT_TRANSITION_MS = 220;
+const CITY_SELECTION_LIMIT = 3;
 
 function getDetectedValue(items: ResumeExtractionItem[] | null | undefined, id: string) {
   const item = items?.find((entry) => entry.id === id);
@@ -62,17 +62,24 @@ function resolvePositionPickerState(position: string): PositionPickerState {
 }
 
 function resolveCityPickerState(city: string): CityPickerState {
-  const selection = findCityPickerSelection(city) ?? {
-    provinceId: DEFAULT_CITY_PICKER_PROVINCE_ID,
-    cityId: getCityPickerProvince(DEFAULT_CITY_PICKER_PROVINCE_ID).cities[0]?.id ?? '',
-    districtId: null,
-  };
+  const selections = findCityPickerSelection(city);
+  const selectedItems: CityPickerSelectedItem[] = selections.map(({ provinceId, cityId }) => {
+    const province = getCityPickerProvince(provinceId);
+    const cityItem = province.cities.find((cityOption) => cityOption.id === cityId) ?? province.cities[0];
+
+    return {
+      key: `${provinceId}-${cityItem.id}`,
+      provinceId,
+      provinceLabel: province.label,
+      cityId: cityItem.id,
+      cityLabel: cityItem.label,
+    };
+  });
 
   return {
-    initialSelection: selection,
-    selectedProvinceId: selection.provinceId,
-    selectedCityId: selection.cityId,
-    selectedDistrictId: selection.districtId,
+    initialSelectedItems: selectedItems,
+    selectedProvinceId: selectedItems[0]?.provinceId ?? DEFAULT_CITY_PICKER_PROVINCE_ID,
+    selectedItems,
   };
 }
 
@@ -87,7 +94,6 @@ export default function App() {
     recordingState,
     submittedTranscript,
     transcriptText,
-    updateFeedback,
   } = useVoiceSession();
   const [overlayVisible, setOverlayVisible] = useState(false);
   const [overlayActive, setOverlayActive] = useState(false);
@@ -107,7 +113,9 @@ export default function App() {
   const [positionPickerState, setPositionPickerState] = useState<PositionPickerState>(() =>
     resolvePositionPickerState(''),
   );
+  const [cityPickerToast, setCityPickerToast] = useState<string | null>(null);
   const chatTimeoutRef = useRef<number | null>(null);
+  const cityPickerToastTimeoutRef = useRef<number | null>(null);
   const previewMode =
     typeof window !== 'undefined' && import.meta.env.DEV
       ? new URLSearchParams(window.location.search).get('preview')
@@ -205,8 +213,23 @@ export default function App() {
       if (chatTimeoutRef.current) {
         window.clearTimeout(chatTimeoutRef.current);
       }
+      if (cityPickerToastTimeoutRef.current) {
+        window.clearTimeout(cityPickerToastTimeoutRef.current);
+      }
     };
   }, []);
+
+  function showCityPickerToast(message: string) {
+    if (cityPickerToastTimeoutRef.current) {
+      window.clearTimeout(cityPickerToastTimeoutRef.current);
+    }
+
+    setCityPickerToast(message);
+    cityPickerToastTimeoutRef.current = window.setTimeout(() => {
+      setCityPickerToast(null);
+      cityPickerToastTimeoutRef.current = null;
+    }, 1800);
+  }
 
   useEffect(() => {
     if (!overlayVisible) {
@@ -231,11 +254,6 @@ export default function App() {
     }
 
     if (overlayMode === 'review') {
-      if (updateFeedback) {
-        pushChatMessage('assistant', updateFeedback, { removeTexts: [RECOGNIZING_CHAT_TEXT] });
-        return;
-      }
-
       pushChatMessage(
         'assistant',
         createReviewPrompt({ ageText, cityText, phoneText, positionText }),
@@ -252,7 +270,6 @@ export default function App() {
     positionText,
     recordingState,
     transcriptText,
-    updateFeedback,
   ]);
 
   function startApplyFlow() {
@@ -303,6 +320,24 @@ export default function App() {
     actions.finishHoldToTalk(false);
   }
 
+  function pushReviewPrompt(nextValues?: Partial<ManualEdits>) {
+    const nextAgeText = nextValues?.age ?? ageText;
+    const nextCityText = nextValues?.city ?? cityText;
+    const nextPhoneText = nextValues?.phone ?? phoneText;
+    const nextPositionText = nextValues?.position ?? positionText;
+
+    pushChatMessage(
+      'assistant',
+      createReviewPrompt({
+        ageText: nextAgeText ?? '',
+        cityText: nextCityText ?? '',
+        phoneText: nextPhoneText ?? '',
+        positionText: nextPositionText ?? '',
+      }),
+      { removeTexts: [RECOGNIZING_CHAT_TEXT] },
+    );
+  }
+
   function handleConfirm() {
     actions.submitCard();
     setOverlayActive(false);
@@ -311,7 +346,16 @@ export default function App() {
   }
 
   function closeSuccessScreen() {
-    actions.closeOverlay();
+    actions.resetApplyState();
+    setOverlayVisible(false);
+    setOverlayActive(false);
+    setEditingField(null);
+    setChatMessages([]);
+    setManualEdits({ age: null, city: null, phone: null, position: null });
+    setCityPickerState(resolveCityPickerState(''));
+    setSelectedAge('');
+    setPhoneInputValue('');
+    setPositionPickerState(resolvePositionPickerState(''));
   }
 
   function openAgePicker() {
@@ -324,67 +368,87 @@ export default function App() {
       return;
     }
 
-    const feedbackText = createManualEditFeedback('年龄', `${selectedAge}岁`, ageText ? `${ageText}岁` : '');
-
     setManualEdits((current) => ({
       ...current,
       age: selectedAge,
     }));
     setEditingField(null);
-    pushChatMessage('assistant', feedbackText);
+    pushReviewPrompt({ age: selectedAge });
   }
 
   function openCityPicker() {
     setCityPickerState(resolveCityPickerState(cityText));
+    setCityPickerToast(null);
     setEditingField('city');
   }
 
   function selectProvince(provinceId: string) {
-    const province = getCityPickerProvince(provinceId);
-    const firstCity = province.cities[0];
     setCityPickerState((current) => ({
       ...current,
       selectedProvinceId: provinceId,
-      selectedCityId: firstCity?.id ?? '',
-      selectedDistrictId: firstCity?.districts[0]?.id ?? null,
     }));
   }
 
-  function selectCity(cityId: string) {
-    const city = getCityPickerCity(cityPickerState.selectedProvinceId, cityId);
+  function toggleCity(cityId: string) {
+    const province = getCityPickerProvince(cityPickerState.selectedProvinceId);
+    const city = province.cities.find((item) => item.id === cityId);
+    if (!city) {
+      return;
+    }
+
+    const nextItem: CityPickerSelectedItem = {
+      key: `${province.id}-${city.id}`,
+      provinceId: province.id,
+      provinceLabel: province.label,
+      cityId: city.id,
+      cityLabel: city.label,
+    };
+
+    setCityPickerState((current) => {
+      if (current.selectedItems.some((item) => item.key === nextItem.key)) {
+        return {
+          ...current,
+          selectedItems: current.selectedItems.filter((item) => item.key !== nextItem.key),
+        };
+      }
+
+      if (current.selectedItems.length >= CITY_SELECTION_LIMIT) {
+        showCityPickerToast('只能选3个城市');
+        return current;
+      }
+
+      return {
+        ...current,
+        selectedItems: [...current.selectedItems, nextItem],
+      };
+    });
+  }
+
+  function removeCity(cityKey: string) {
+    setCityPickerToast(null);
     setCityPickerState((current) => ({
       ...current,
-      selectedCityId: cityId,
-      selectedDistrictId:
-        current.selectedDistrictId && city.districts.some((district) => district.id === current.selectedDistrictId)
-          ? current.selectedDistrictId
-          : city.districts[0]?.id ?? null,
+      selectedItems: current.selectedItems.filter((item) => item.key !== cityKey),
     }));
   }
 
   function resetCityPicker() {
+    setCityPickerToast(null);
     setCityPickerState((current) => ({
-      initialSelection: current.initialSelection,
-      selectedProvinceId: current.initialSelection.provinceId,
-      selectedCityId: current.initialSelection.cityId,
-      selectedDistrictId: current.initialSelection.districtId,
+      initialSelectedItems: current.initialSelectedItems,
+      selectedProvinceId: current.initialSelectedItems[0]?.provinceId ?? DEFAULT_CITY_PICKER_PROVINCE_ID,
+      selectedItems: current.initialSelectedItems,
     }));
   }
 
   function confirmCityPicker() {
-    const nextValue = formatCityPickerValue(
-      cityPickerState.selectedProvinceId,
-      cityPickerState.selectedCityId,
-      cityPickerState.selectedDistrictId,
-    );
-    const feedbackText = createManualEditFeedback('工作地点', nextValue, cityText);
-
+    const nextValue = formatCityPickerValue(cityPickerState.selectedItems);
     setManualEdits((current) => ({
       ...current,
       city: nextValue,
     }));
     setEditingField(null);
-    pushChatMessage('assistant', feedbackText);
+    pushReviewPrompt({ city: nextValue });
   }
 
   function openPhoneEditor() {
@@ -401,14 +465,12 @@ export default function App() {
       return;
     }
 
-    const feedbackText = createManualEditFeedback('手机号', phoneInputValue, phoneText);
-
     setManualEdits((current) => ({
       ...current,
       phone: phoneInputValue,
     }));
     setEditingField(null);
-    pushChatMessage('assistant', feedbackText);
+    pushReviewPrompt({ phone: phoneInputValue });
   }
 
   function openPositionPicker() {
@@ -457,14 +519,13 @@ export default function App() {
     }
 
     const selectedPosition = positionPickerState.selectedOption;
-    const feedbackText = createManualEditFeedback('意向职位', selectedPosition, positionText);
 
     setManualEdits((current) => ({
       ...current,
       position: selectedPosition,
     }));
     setEditingField(null);
-    pushChatMessage('assistant', feedbackText);
+    pushReviewPrompt({ position: selectedPosition });
   }
 
   return (
@@ -492,6 +553,7 @@ export default function App() {
           onConfirm={handleConfirm}
           onConfirmAgePicker={confirmAgePicker}
           onConfirmCityPicker={confirmCityPicker}
+          onCityPickerToastMessage={cityPickerToast}
           onConfirmPhoneEditor={confirmPhoneEditor}
           onConfirmPositionPicker={confirmPositionPicker}
           onDone={finishRecording}
@@ -503,13 +565,7 @@ export default function App() {
           onResetPositionPicker={resetPositionPicker}
           onRetry={retryRecording}
           onSelectAge={setSelectedAge}
-          onSelectCity={selectCity}
-          onSelectDistrict={(districtId) =>
-            setCityPickerState((current) => ({
-              ...current,
-              selectedDistrictId: districtId,
-            }))
-          }
+          onRemoveCity={removeCity}
           onSelectPositionCategory={selectPositionCategory}
           onSelectPositionOption={(option) =>
             setPositionPickerState((current) => ({
@@ -517,6 +573,7 @@ export default function App() {
               selectedOption: option,
             }))
           }
+          onToggleCity={toggleCity}
           onSelectProvince={selectProvince}
           phoneInputValue={phoneInputValue}
           phoneText={resolvedPhoneText}
