@@ -1,4 +1,5 @@
 import type { ResumeAnalysis, ResumeExtractionItem, ResumeInfoCard } from '../types/speech';
+import { normalizePositionFieldValue } from './positionSpeechCorrection';
 import { buildResumeAnalysis } from '../utils/resumeCard';
 import { normalizeText } from '../utils/text';
 
@@ -97,8 +98,9 @@ export function buildAnalysisFromAgentFields(
   const age = normalizeField(fields.age, getFallbackItem(fallback, 'age'));
   const city = normalizeField(fields.city, getFallbackItem(fallback, 'city'), { maxCount: 3 });
   const position = normalizeField(fields.position, getFallbackItem(fallback, 'position'), {
-    maxCount: 5,
+    maxCount: 3,
   });
+  position.value = normalizePositionFieldValue(position.value);
   const phone = normalizeField(fields.phone, getFallbackItem(fallback, 'phone'));
   const fallbackFields = fallback.card.fields;
 

@@ -12,11 +12,13 @@
   },
   "include": [
     "vite.config.ts",
+    "src/lib/positionSpeechCorrection.ts",
     "src/lib/resumeAgentResponse.ts",
     "src/types/speech.ts",
     "src/utils/resumeCard.ts",
     "src/utils/text.ts",
     "src/data/lookupTables.ts",
-    "src/data/nameTables.ts"
+    "src/data/nameTables.ts",
+    "src/data/positionPicker.ts"
   ]
 }

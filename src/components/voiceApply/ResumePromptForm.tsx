@@ -11,6 +11,32 @@ type ResumePromptFormProps = {
   onOpenPositionPicker: () => void;
 };
 
+function formatCityDisplay(value: string) {
+  const parts = value
+    .split('、')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (parts.length <= 2) {
+    return value;
+  }
+
+  return `${parts.slice(0, 2).join('、')}…`;
+}
+
+function formatPositionDisplay(value: string) {
+  const parts = value
+    .split('、')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (parts.length <= 2) {
+    return value;
+  }
+
+  return `${parts.slice(0, 2).join('、')}…`;
+}
+
 export function ResumePromptForm({
   ageText,
   cityText,
@@ -39,6 +65,9 @@ export function ResumePromptForm({
   const lineClass = recordingStyle
     ? 'bg-[#d7d9de]'
     : 'bg-[#d9dfe8]';
+  const cityDisplayText = hasCityText ? formatCityDisplay(cityText) : '';
+  const positionDisplayText = hasPositionText ? formatPositionDisplay(positionText) : '';
+  const alignedFieldBoxClass = 'left-[144px] w-[144px]';
 
   return (
     <div
@@ -88,22 +117,22 @@ export function ResumePromptForm({
         <span>我的意向城市是</span>
         <button
           aria-label="编辑意向城市"
-          className={`absolute top-0 ${recordingStyle ? 'left-[144px] h-[28px] w-[144px]' : 'left-[152px] h-[28px] w-[156px]'}`}
+          className={`absolute top-0 h-[28px] ${alignedFieldBoxClass}`}
           onClick={onOpenCityPicker}
           type="button"
         />
         <span className={`mb-[2px] block min-w-0 flex-1 border-b ${recordingStyle ? 'border-[#d7d9de]' : 'border-[#d9dfe8]'}`} />
         <span>，</span>
         {!hasCityText ? (
-          <span className={`absolute ${recordingStyle ? 'left-[151px] top-[4px]' : 'left-[151px] top-1'} ${placeholderTextClass}`}>市/区/县（最多3个）</span>
+          <span className={`pointer-events-none absolute ${recordingStyle ? 'left-[151px] top-[4px]' : 'left-[151px] top-1'} ${placeholderTextClass}`}>市/区/县（最多3个）</span>
         ) : null}
         {hasCityText ? (
           <button
-            className={`absolute top-0 ${recordingStyle ? 'left-[152px] w-[136px]' : 'left-[165px] w-[142px]'} overflow-hidden text-ellipsis whitespace-nowrap text-left ${valueTextClass}`}
+            className={`absolute top-0 overflow-hidden text-ellipsis whitespace-nowrap text-center ${alignedFieldBoxClass} ${valueTextClass}`}
             onClick={onOpenCityPicker}
             type="button"
           >
-            {cityText}
+            {cityDisplayText}
           </button>
         ) : null}
       </div>
@@ -111,22 +140,22 @@ export function ResumePromptForm({
         <span>我的意向职位是</span>
         <button
           aria-label="编辑意向职位"
-          className={`absolute top-0 ${recordingStyle ? 'left-[144px] h-[28px] w-[144px]' : 'left-[191px] h-[28px] w-[118px]'}`}
+          className={`absolute top-0 h-[28px] ${alignedFieldBoxClass}`}
           onClick={onOpenPositionPicker}
           type="button"
         />
         <span className={`mb-[2px] block min-w-0 flex-1 border-b ${recordingStyle ? 'border-[#d7d9de]' : 'border-[#d9dfe8]'}`} />
         <span>。</span>
         {!hasPositionText && recordingStyle ? (
-          <span className="absolute left-[175px] top-[4px] text-[14px] leading-5 text-[rgba(156,156,156,0.8)]">（最多5个）</span>
+          <span className="pointer-events-none absolute left-[175px] top-[4px] text-[14px] leading-5 text-[rgba(156,156,156,0.8)]">（最多3个）</span>
         ) : null}
         {hasPositionText ? (
           <button
-            className={`absolute top-0 ${recordingStyle ? 'left-[152px] w-[136px]' : 'left-[195px] w-[112px]'} overflow-hidden text-ellipsis whitespace-nowrap text-left ${valueTextClass}`}
+            className={`absolute top-0 overflow-hidden text-ellipsis whitespace-nowrap text-center ${alignedFieldBoxClass} ${valueTextClass}`}
             onClick={onOpenPositionPicker}
             type="button"
           >
-            {positionText}
+            {positionDisplayText}
           </button>
         ) : null}
       </div>

@@ -9,6 +9,7 @@ import type {
   CityPickerSelectedItem,
   EditableField,
   ManualEdits,
+  PositionPickerSelectedItem,
   PositionPickerState,
 } from './components/voiceApply/types';
 import {
@@ -20,6 +21,7 @@ import {
 import {
   DEFAULT_POSITION_PICKER_CATEGORY_ID,
   findPositionPickerSelection,
+  formatPositionPickerValue,
   getPositionPickerCategory,
 } from './data/positionPicker';
 import { useVoiceSession } from './hooks/useVoiceSession';
@@ -41,6 +43,7 @@ import {
 const CHAT_LIMIT = 2;
 const CHAT_TRANSITION_MS = 220;
 const CITY_SELECTION_LIMIT = 3;
+const POSITION_SELECTION_LIMIT = 3;
 
 function getDetectedValue(items: ResumeExtractionItem[] | null | undefined, id: string) {
   const item = items?.find((entry) => entry.id === id);
@@ -53,11 +56,21 @@ function normalizeAgeDisplay(value: string) {
 }
 
 function resolvePositionPickerState(position: string): PositionPickerState {
-  const selection = findPositionPickerSelection(position);
+  const selections = findPositionPickerSelection(position);
+  const selectedItems: PositionPickerSelectedItem[] = selections.map(({ categoryId, option }) => {
+    const category = getPositionPickerCategory(categoryId);
+    return {
+      key: `${categoryId}-${option}`,
+      categoryId,
+      categoryLabel: category.label,
+      option,
+    };
+  });
+
   return {
-    initialOption: selection?.option ?? null,
-    selectedCategoryId: selection?.categoryId ?? DEFAULT_POSITION_PICKER_CATEGORY_ID,
-    selectedOption: selection?.option ?? null,
+    initialSelectedItems: selectedItems,
+    selectedCategoryId: selectedItems[0]?.categoryId ?? DEFAULT_POSITION_PICKER_CATEGORY_ID,
+    selectedItems,
   };
 }
 
@@ -104,6 +117,10 @@ export default function App() {
     phone: null,
     position: null,
   });
+  const [latestCityValue, setLatestCityValue] = useState<string>('');
+  const [latestPositionValue, setLatestPositionValue] = useState<string>('');
+  const lastDetectedCityRef = useRef<string>('');
+  const lastDetectedPositionRef = useRef<string>('');
   const [editingField, setEditingField] = useState<EditableField | null>(null);
   const [cityPickerState, setCityPickerState] = useState<CityPickerState>(() =>
     resolveCityPickerState(''),
@@ -113,9 +130,12 @@ export default function App() {
   const [positionPickerState, setPositionPickerState] = useState<PositionPickerState>(() =>
     resolvePositionPickerState(''),
   );
+  const [isSupplementing, setIsSupplementing] = useState(false);
   const [cityPickerToast, setCityPickerToast] = useState<string | null>(null);
+  const [positionPickerToast, setPositionPickerToast] = useState<string | null>(null);
   const chatTimeoutRef = useRef<number | null>(null);
   const cityPickerToastTimeoutRef = useRef<number | null>(null);
+  const positionPickerToastTimeoutRef = useRef<number | null>(null);
   const previewMode =
     typeof window !== 'undefined' && import.meta.env.DEV
       ? new URLSearchParams(window.location.search).get('preview')
@@ -128,9 +148,9 @@ export default function App() {
   const detectedPhoneText = getDetectedValue(extractionItems, 'phone');
   const phoneText = manualEdits.phone ?? detectedPhoneText;
   const detectedCityText = getDetectedValue(extractionItems, 'city');
-  const cityText = manualEdits.city ?? detectedCityText;
+  const cityText = latestCityValue;
   const detectedPositionText = getDetectedValue(extractionItems, 'position');
-  const positionText = manualEdits.position ?? detectedPositionText;
+  const positionText = latestPositionValue;
   const isConfirmEnabled =
     ageText.trim().length > 0 &&
     phoneText.trim().length > 0 &&
@@ -216,8 +236,37 @@ export default function App() {
       if (cityPickerToastTimeoutRef.current) {
         window.clearTimeout(cityPickerToastTimeoutRef.current);
       }
+      if (positionPickerToastTimeoutRef.current) {
+        window.clearTimeout(positionPickerToastTimeoutRef.current);
+      }
     };
   }, []);
+
+  useEffect(() => {
+    if (!detectedCityText.trim()) {
+      return;
+    }
+
+    if (detectedCityText === lastDetectedCityRef.current) {
+      return;
+    }
+
+    lastDetectedCityRef.current = detectedCityText;
+    setLatestCityValue(detectedCityText);
+  }, [detectedCityText]);
+
+  useEffect(() => {
+    if (!detectedPositionText.trim()) {
+      return;
+    }
+
+    if (detectedPositionText === lastDetectedPositionRef.current) {
+      return;
+    }
+
+    lastDetectedPositionRef.current = detectedPositionText;
+    setLatestPositionValue(detectedPositionText);
+  }, [detectedPositionText]);
 
   function showCityPickerToast(message: string) {
     if (cityPickerToastTimeoutRef.current) {
@@ -228,6 +277,18 @@ export default function App() {
     cityPickerToastTimeoutRef.current = window.setTimeout(() => {
       setCityPickerToast(null);
       cityPickerToastTimeoutRef.current = null;
+    }, 1800);
+  }
+
+  function showPositionPickerToast(message: string) {
+    if (positionPickerToastTimeoutRef.current) {
+      window.clearTimeout(positionPickerToastTimeoutRef.current);
+    }
+
+    setPositionPickerToast(message);
+    positionPickerToastTimeoutRef.current = window.setTimeout(() => {
+      setPositionPickerToast(null);
+      positionPickerToastTimeoutRef.current = null;
     }, 1800);
   }
 
@@ -272,9 +333,24 @@ export default function App() {
     transcriptText,
   ]);
 
+  useEffect(() => {
+    if (!isSupplementing) {
+      return;
+    }
+
+    if (overlayMode === 'review' || overlayMode === 'error') {
+      setIsSupplementing(false);
+    }
+  }, [isSupplementing, overlayMode]);
+
   function startApplyFlow() {
     setOverlayVisible(true);
     setManualEdits({ age: null, city: null, phone: null, position: null });
+    setLatestCityValue('');
+    setLatestPositionValue('');
+    lastDetectedCityRef.current = '';
+    lastDetectedPositionRef.current = '';
+    setIsSupplementing(false);
     setEditingField(null);
     setCityPickerState(resolveCityPickerState(''));
     setSelectedAge('');
@@ -299,11 +375,17 @@ export default function App() {
 
     actions.closeOverlay();
     setOverlayActive(false);
+    setIsSupplementing(false);
     setEditingField(null);
     window.setTimeout(() => {
       setOverlayVisible(false);
       setChatMessages([]);
       setManualEdits({ age: null, city: null, phone: null, position: null });
+      setLatestCityValue('');
+      setLatestPositionValue('');
+      lastDetectedCityRef.current = '';
+      lastDetectedPositionRef.current = '';
+      setIsSupplementing(false);
       setCityPickerState(resolveCityPickerState(''));
       setSelectedAge('');
       setPhoneInputValue('');
@@ -316,7 +398,21 @@ export default function App() {
     void actions.startHoldToTalk({ preserveExisting: true });
   }
 
+  function startSupplementFlow() {
+    setIsSupplementing(true);
+    resetChatMessages();
+    void actions.startHoldToTalk({ preserveExisting: true });
+  }
+
+  function cancelSupplementFlow() {
+    actions.finishHoldToTalk(true);
+    setIsSupplementing(false);
+    resetChatMessages();
+    pushReviewPrompt();
+  }
+
   function finishRecording() {
+    setIsSupplementing(false);
     actions.finishHoldToTalk(false);
   }
 
@@ -349,9 +445,14 @@ export default function App() {
     actions.resetApplyState();
     setOverlayVisible(false);
     setOverlayActive(false);
+    setIsSupplementing(false);
     setEditingField(null);
     setChatMessages([]);
     setManualEdits({ age: null, city: null, phone: null, position: null });
+    setLatestCityValue('');
+    setLatestPositionValue('');
+    lastDetectedCityRef.current = '';
+    lastDetectedPositionRef.current = '';
     setCityPickerState(resolveCityPickerState(''));
     setSelectedAge('');
     setPhoneInputValue('');
@@ -447,6 +548,7 @@ export default function App() {
       ...current,
       city: nextValue,
     }));
+    setLatestCityValue(nextValue);
     setEditingField(null);
     pushReviewPrompt({ city: nextValue });
   }
@@ -475,55 +577,75 @@ export default function App() {
 
   function openPositionPicker() {
     setPositionPickerState(resolvePositionPickerState(positionText));
+    setPositionPickerToast(null);
     setEditingField('position');
   }
 
   function resetPositionPicker() {
-    setPositionPickerState((current) => {
-      if (!current.initialOption) {
-        return {
-          ...current,
-          selectedCategoryId: DEFAULT_POSITION_PICKER_CATEGORY_ID,
-          selectedOption: null,
-        };
-      }
-
-      const selection = findPositionPickerSelection(current.initialOption);
-      return {
-        initialOption: current.initialOption,
-        selectedCategoryId: selection?.categoryId ?? DEFAULT_POSITION_PICKER_CATEGORY_ID,
-        selectedOption: current.initialOption,
-      };
-    });
+    setPositionPickerToast(null);
+    setPositionPickerState((current) => ({
+      initialSelectedItems: current.initialSelectedItems,
+      selectedCategoryId: current.initialSelectedItems[0]?.categoryId ?? DEFAULT_POSITION_PICKER_CATEGORY_ID,
+      selectedItems: current.initialSelectedItems,
+    }));
   }
 
   function selectPositionCategory(categoryId: string) {
+    setPositionPickerState((current) => ({
+      ...current,
+      selectedCategoryId: categoryId,
+    }));
+  }
+
+  function togglePositionOption(option: string) {
+    const category = getPositionPickerCategory(positionPickerState.selectedCategoryId);
+    const nextItem: PositionPickerSelectedItem = {
+      key: `${category.id}-${option}`,
+      categoryId: category.id,
+      categoryLabel: category.label,
+      option,
+    };
+
     setPositionPickerState((current) => {
-      const category = getPositionPickerCategory(categoryId);
-      const selectedOption =
-        current.selectedOption && category.options.includes(current.selectedOption)
-          ? current.selectedOption
-          : null;
+      if (current.selectedItems.some((item) => item.key === nextItem.key)) {
+        return {
+          ...current,
+          selectedItems: current.selectedItems.filter((item) => item.key !== nextItem.key),
+        };
+      }
+
+      if (current.selectedItems.length >= POSITION_SELECTION_LIMIT) {
+        showPositionPickerToast('只能选3个职位');
+        return current;
+      }
 
       return {
         ...current,
-        selectedCategoryId: categoryId,
-        selectedOption,
+        selectedItems: [...current.selectedItems, nextItem],
       };
     });
   }
 
+  function removePosition(positionKey: string) {
+    setPositionPickerToast(null);
+    setPositionPickerState((current) => ({
+      ...current,
+      selectedItems: current.selectedItems.filter((item) => item.key !== positionKey),
+    }));
+  }
+
   function confirmPositionPicker() {
-    if (!positionPickerState.selectedOption) {
+    if (positionPickerState.selectedItems.length === 0) {
       return;
     }
 
-    const selectedPosition = positionPickerState.selectedOption;
+    const selectedPosition = formatPositionPickerValue(positionPickerState.selectedItems);
 
     setManualEdits((current) => ({
       ...current,
       position: selectedPosition,
     }));
+    setLatestPositionValue(selectedPosition);
     setEditingField(null);
     pushReviewPrompt({ position: selectedPosition });
   }
@@ -543,7 +665,9 @@ export default function App() {
           isActive={resolvedOverlayActive}
           isConfirmEnabled={resolvedIsConfirmEnabled}
           isDoneEnabled={resolvedIsDoneEnabled}
+          isSupplementing={isSupplementing}
           mode={resolvedOverlayMode}
+          onCancelSupplement={cancelSupplementFlow}
           onChangePhoneInput={changePhoneInput}
           onClose={closeApplyScreen}
           onCloseAgePicker={() => setEditingField(null)}
@@ -556,6 +680,7 @@ export default function App() {
           onCityPickerToastMessage={cityPickerToast}
           onConfirmPhoneEditor={confirmPhoneEditor}
           onConfirmPositionPicker={confirmPositionPicker}
+          onPositionPickerToastMessage={positionPickerToast}
           onDone={finishRecording}
           onOpenAgePicker={openAgePicker}
           onOpenCityPicker={openCityPicker}
@@ -564,15 +689,12 @@ export default function App() {
           onResetCityPicker={resetCityPicker}
           onResetPositionPicker={resetPositionPicker}
           onRetry={retryRecording}
+          onStartSupplement={startSupplementFlow}
           onSelectAge={setSelectedAge}
           onRemoveCity={removeCity}
+          onRemovePosition={removePosition}
           onSelectPositionCategory={selectPositionCategory}
-          onSelectPositionOption={(option) =>
-            setPositionPickerState((current) => ({
-              ...current,
-              selectedOption: option,
-            }))
-          }
+          onTogglePositionOption={togglePositionOption}
           onToggleCity={toggleCity}
           onSelectProvince={selectProvince}
           phoneInputValue={phoneInputValue}

@@ -6,14 +6,14 @@ export interface PositionPickerCategory {
 
 export interface PositionPickerSelection {
   categoryId: string;
-  option: string | null;
+  option: string;
 }
 
 export const POSITION_PICKER_CATEGORIES: PositionPickerCategory[] = [
   {
     id: 'popular',
     label: '热门职位',
-    options: ['司机', '保安', '普工', '客服', '项目经理'],
+    options: ['司机', '保安', '保洁', '普工', '客服', '项目经理'],
   },
   {
     id: 'general-worker',
@@ -46,6 +46,11 @@ export const POSITION_PICKER_CATEGORIES: PositionPickerCategory[] = [
     options: ['保安', '门卫', '保安员', '巡逻岗', '监控岗'],
   },
   {
+    id: 'cleaning',
+    label: '保洁',
+    options: ['保洁', '保洁员', '家政保洁', '保洁主管'],
+  },
+  {
     id: 'safety',
     label: '安全员',
     options: ['安全员', '施工安全员', '安全巡检员', '消防中控员', '安检员'],
@@ -64,31 +69,46 @@ export const POSITION_PICKER_CATEGORIES: PositionPickerCategory[] = [
 
 export const DEFAULT_POSITION_PICKER_CATEGORY_ID = 'popular';
 
-export function findPositionPickerSelection(position: string): PositionPickerSelection | null {
+export function findPositionPickerSelection(position: string): PositionPickerSelection[] {
   const normalized = position.trim();
   if (!normalized) {
-    return null;
+    return [];
   }
 
-  for (const category of POSITION_PICKER_CATEGORIES) {
-    const match = category.options.find((option) => option === normalized);
-    if (match) {
-      return {
-        categoryId: category.id,
-        option: match,
-      };
+  const segments = normalized
+    .split(/[、,，]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const selections: PositionPickerSelection[] = [];
+
+  for (const segment of segments) {
+    for (const category of POSITION_PICKER_CATEGORIES) {
+      const match = category.options.find((option) => option === segment);
+      if (match) {
+        selections.push({
+          categoryId: category.id,
+          option: match,
+        });
+        break;
+      }
     }
   }
 
-  const driverCategory = POSITION_PICKER_CATEGORIES.find((category) => category.id === 'driver');
-  if (normalized.includes('司机') && driverCategory) {
-    return {
-      categoryId: driverCategory.id,
-      option: null,
-    };
+  if (selections.length > 0) {
+    return selections;
   }
 
-  return null;
+  for (const category of POSITION_PICKER_CATEGORIES) {
+    const match = category.options.find((option) => normalized.includes(option));
+    if (match) {
+      return [{
+        categoryId: category.id,
+        option: match,
+      }];
+    }
+  }
+
+  return [];
 }
 
 export function getPositionPickerCategory(categoryId: string) {
@@ -96,4 +116,10 @@ export function getPositionPickerCategory(categoryId: string) {
     POSITION_PICKER_CATEGORIES.find((category) => category.id === categoryId) ??
     POSITION_PICKER_CATEGORIES[0]
   );
+}
+
+export function formatPositionPickerValue(
+  selections: Array<{ option: string }>,
+) {
+  return selections.map(({ option }) => option).join('、');
 }

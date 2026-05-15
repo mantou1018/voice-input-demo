@@ -27,7 +27,7 @@ export function CityPickerSheet({
     <div className="absolute inset-0 z-40">
       <button
         aria-label="关闭城市选择"
-        className="absolute inset-0"
+        className="absolute inset-0 bg-[rgba(34,34,34,0.28)]"
         onClick={onClose}
         type="button"
       />

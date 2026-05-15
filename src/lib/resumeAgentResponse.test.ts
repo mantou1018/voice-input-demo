@@ -22,6 +22,17 @@ describe('buildAnalysisFromAgentFields', () => {
     ]);
     expect(analysis.extractionItems.every((item) => item.detected)).toBe(true);
   });
+
+  it('normalizes misheard position values into canonical job titles', () => {
+    const analysis = buildAnalysisFromAgentFields('我想做宝杰，手机号13800138000', {
+      age: { value: '', detected: false, sourceText: null },
+      city: { value: '', detected: false, sourceText: null },
+      position: { value: '宝杰', detected: true, sourceText: '宝杰' },
+      phone: { value: '13800138000', detected: true, sourceText: '13800138000' },
+    });
+
+    expect(analysis.card.fields[4].value).toBe('保洁');
+  });
 });
 
 describe('buildFallbackAnalysis', () => {

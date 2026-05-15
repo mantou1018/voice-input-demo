@@ -7,25 +7,24 @@ import {
 
 describe('position picker helpers', () => {
   it('finds the exact category and option for configured positions', () => {
-    expect(findPositionPickerSelection('司机')).toEqual({
-      categoryId: 'popular',
-      option: '司机',
-    });
-    expect(findPositionPickerSelection('滴滴司机')).toEqual({
-      categoryId: 'driver',
-      option: '滴滴司机',
-    });
+    expect(findPositionPickerSelection('司机、滴滴司机、保洁')).toEqual([
+      {
+        categoryId: 'popular',
+        option: '司机',
+      },
+      {
+        categoryId: 'driver',
+        option: '滴滴司机',
+      },
+      {
+        categoryId: 'popular',
+        option: '保洁',
+      },
+    ]);
   });
 
-  it('falls back to the driver category for unknown driver roles', () => {
-    expect(findPositionPickerSelection('商务司机长途线')).toEqual({
-      categoryId: 'driver',
-      option: null,
-    });
-  });
-
-  it('returns null for positions that cannot be mapped', () => {
-    expect(findPositionPickerSelection('算法工程师')).toBeNull();
+  it('returns an empty array for positions that cannot be mapped', () => {
+    expect(findPositionPickerSelection('算法工程师')).toEqual([]);
   });
 
   it('returns the default category when the category id is unknown', () => {

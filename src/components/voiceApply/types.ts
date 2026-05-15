@@ -23,10 +23,17 @@ export type CityPickerState = {
   selectedItems: CityPickerSelectedItem[];
 };
 
+export type PositionPickerSelectedItem = {
+  key: string;
+  categoryId: string;
+  categoryLabel: string;
+  option: string;
+};
+
 export type PositionPickerState = {
-  initialOption: string | null;
+  initialSelectedItems: PositionPickerSelectedItem[];
   selectedCategoryId: string;
-  selectedOption: string | null;
+  selectedItems: PositionPickerSelectedItem[];
 };
 
 export type ApplyMode = 'prepare' | 'recording' | 'extracting' | 'review' | 'error';
@@ -40,13 +47,16 @@ export type ApplyScreenProps = {
   isConfirmEnabled: boolean;
   isActive: boolean;
   isDoneEnabled: boolean;
+  isSupplementing: boolean;
   mode: ApplyMode;
   onClose: () => void;
+  onCancelSupplement: () => void;
   onConfirm: () => void;
   onConfirmCityPicker: () => void;
   onCityPickerToastMessage?: string | null;
   onDone: () => void;
   onRetry: () => void;
+  onStartSupplement: () => void;
   cityPickerState: CityPickerState;
   selectedAge: string;
   phoneText: string;
@@ -60,6 +70,7 @@ export type ApplyScreenProps = {
   onClosePhoneEditor: () => void;
   onClosePositionPicker: () => void;
   onConfirmAgePicker: () => void;
+  onPositionPickerToastMessage?: string | null;
   onConfirmPhoneEditor: () => void;
   onConfirmPositionPicker: () => void;
   onOpenAgePicker: () => void;
@@ -70,9 +81,10 @@ export type ApplyScreenProps = {
   onResetPositionPicker: () => void;
   onSelectAge: (age: string) => void;
   onRemoveCity: (cityKey: string) => void;
+  onRemovePosition: (positionKey: string) => void;
   onToggleCity: (cityId: string) => void;
   onSelectProvince: (provinceId: string) => void;
   onSelectPositionCategory: (categoryId: string) => void;
-  onSelectPositionOption: (option: string) => void;
+  onTogglePositionOption: (option: string) => void;
   positionPickerState: PositionPickerState;
 };

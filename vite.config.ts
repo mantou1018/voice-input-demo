@@ -7,6 +7,7 @@ import {
   buildFallbackAnalysis,
   type AgentFieldPayload,
 } from './src/lib/resumeAgentResponse';
+import { normalizePositionSpeechText } from './src/lib/positionSpeechCorrection';
 
 const AGENT_SYSTEM_PROMPT = `
 你是招聘报名信息抽取助手。只从用户语音转写文本中抽取四个字段：年龄、手机号、意向城市、意向职位。
@@ -87,6 +88,8 @@ function createResumeAgentPlugin(env: Record<string, string>): Plugin {
           return;
         }
 
+        const correctedTranscript = normalizePositionSpeechText(transcript);
+
         try {
           const upstreamResponse = await fetch(`${baseUrl.replace(/\/$/u, '')}/chat/completions`, {
             method: 'POST',
@@ -100,7 +103,7 @@ function createResumeAgentPlugin(env: Record<string, string>): Plugin {
               response_format: { type: 'json_object' },
               messages: [
                 { role: 'system', content: AGENT_SYSTEM_PROMPT },
-                { role: 'user', content: transcript },
+                { role: 'user', content: correctedTranscript },
               ],
             }),
           });
@@ -108,7 +111,7 @@ function createResumeAgentPlugin(env: Record<string, string>): Plugin {
           if (!upstreamResponse.ok) {
             const upstreamText = await upstreamResponse.text();
             console.error('[resume-agent] upstream failed', upstreamResponse.status, upstreamText);
-            sendJson(response, 200, buildFallbackAnalysis(transcript));
+            sendJson(response, 200, buildFallbackAnalysis(correctedTranscript));
             return;
           }
 
@@ -118,7 +121,7 @@ function createResumeAgentPlugin(env: Record<string, string>): Plugin {
           const content = upstreamPayload.choices?.[0]?.message?.content;
 
           if (!content) {
-            sendJson(response, 200, buildFallbackAnalysis(transcript));
+            sendJson(response, 200, buildFallbackAnalysis(correctedTranscript));
             return;
           }
 
@@ -126,20 +129,20 @@ function createResumeAgentPlugin(env: Record<string, string>): Plugin {
 
           if (!jsonText) {
             console.error('[resume-agent] non-json content', content);
-            sendJson(response, 200, buildFallbackAnalysis(transcript));
+            sendJson(response, 200, buildFallbackAnalysis(correctedTranscript));
             return;
           }
 
           try {
             const fields = JSON.parse(jsonText) as AgentFieldPayload;
-            sendJson(response, 200, buildAnalysisFromAgentFields(transcript, fields));
+            sendJson(response, 200, buildAnalysisFromAgentFields(correctedTranscript, fields));
           } catch (error) {
             console.error('[resume-agent] invalid json content', error);
-            sendJson(response, 200, buildFallbackAnalysis(transcript));
+            sendJson(response, 200, buildFallbackAnalysis(correctedTranscript));
           }
         } catch (error) {
           console.error('[resume-agent] request failed', error);
-          sendJson(response, 200, buildFallbackAnalysis(transcript));
+          sendJson(response, 200, buildFallbackAnalysis(correctedTranscript));
         }
       });
     },

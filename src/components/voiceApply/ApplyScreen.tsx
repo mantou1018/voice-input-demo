@@ -22,13 +22,16 @@ export function ApplyScreen({
   isConfirmEnabled,
   isActive,
   isDoneEnabled,
+  isSupplementing,
   mode,
+  onCancelSupplement,
   onClose,
   onConfirm,
   onConfirmCityPicker,
   onCityPickerToastMessage,
   onDone,
   onRetry,
+  onStartSupplement,
   cityPickerState,
   selectedAge,
   phoneText,
@@ -43,6 +46,7 @@ export function ApplyScreen({
   onClosePhoneEditor,
   onClosePositionPicker,
   onConfirmAgePicker,
+  onPositionPickerToastMessage,
   onConfirmPhoneEditor,
   onConfirmPositionPicker,
   onOpenAgePicker,
@@ -53,9 +57,10 @@ export function ApplyScreen({
   onResetPositionPicker,
   onSelectAge,
   onRemoveCity,
+  onRemovePosition,
   onSelectProvince,
   onSelectPositionCategory,
-  onSelectPositionOption,
+  onTogglePositionOption,
   onToggleCity,
   positionPickerState,
 }: ApplyScreenProps) {
@@ -74,12 +79,14 @@ export function ApplyScreen({
     phoneText.trim().length > 0 ||
     cityText.trim().length > 0 ||
     positionText.trim().length > 0;
-  const headingTitle = showReview
+  const shouldShowReviewHeading = showReview || (hasFormContent && !isSupplementing && !isRecordingMode && !showExtracting);
+  const showListeningPrompt = usesInputShell && (!hasFormContent || isSupplementing);
+  const headingTitle = shouldShowReviewHeading
     ? '请确认信息'
     : hasFormContent
       ? '请确认信息'
       : '您可以这样对我说';
-  const headingSubtitle = showReview
+  const headingSubtitle = shouldShowReviewHeading
     ? '完善您的简历'
     : hasFormContent
       ? '点击上方信息可手动修改'
@@ -137,7 +144,7 @@ export function ApplyScreen({
         />
 
         <div className={`flex min-h-0 flex-1 flex-col ${usesInputShell ? 'mt-[36px] justify-end' : 'mt-[34px]'}`}>
-          {showExtracting ? null : usesInputShell ? (
+          {showExtracting ? null : showListeningPrompt ? (
             <div
               className={`flex min-h-0 shrink items-end justify-center ${
                 isRecordingMode && hasTranscriptText
@@ -179,12 +186,15 @@ export function ApplyScreen({
       >
         <ApplyActions
           hasTranscriptText={hasTranscriptText}
+          isSupplementing={isSupplementing}
           mode={mode}
+          onCancelSupplement={onCancelSupplement}
           isConfirmEnabled={isConfirmEnabled}
           isDoneEnabled={isDoneEnabled}
           onConfirm={onConfirm}
           onDone={onDone}
           onRetry={onRetry}
+          onStartSupplement={onStartSupplement}
           showError={showError}
           showExtracting={showExtracting}
           showReview={showReview}
@@ -195,9 +205,11 @@ export function ApplyScreen({
         <PositionPickerSheet
           onClose={onClosePositionPicker}
           onConfirm={onConfirmPositionPicker}
+          onRemovePosition={onRemovePosition}
           onReset={onResetPositionPicker}
           onSelectCategory={onSelectPositionCategory}
-          onSelectOption={onSelectPositionOption}
+          onToggleOption={onTogglePositionOption}
+          toastMessage={onPositionPickerToastMessage}
           positionPickerState={positionPickerState}
         />
       ) : null}

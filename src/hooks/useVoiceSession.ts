@@ -323,6 +323,7 @@ export function useVoiceSession() {
     }
     setError(null);
     setRecordingState('requestingPermission');
+    setPhase('recording');
 
     try {
       await ensureMicrophoneAccess();
