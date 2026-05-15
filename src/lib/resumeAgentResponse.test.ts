@@ -33,6 +33,19 @@ describe('buildAnalysisFromAgentFields', () => {
 
     expect(analysis.card.fields[4].value).toBe('保洁');
   });
+
+  it('rejects pure numeric fragments from the position field', () => {
+    const analysis = buildAnalysisFromAgentFields('1356 110 北京', {
+      age: { value: '', detected: false, sourceText: null },
+      city: { value: '北京', detected: true, sourceText: '北京' },
+      position: { value: '1356', detected: true, sourceText: '1356' },
+      phone: { value: '', detected: false, sourceText: null },
+    });
+
+    expect(analysis.card.fields[3].value).toBe('北京');
+    expect(analysis.card.fields[4].value).not.toBe('1356');
+    expect(analysis.extractionItems[2].detected).toBe(false);
+  });
 });
 
 describe('buildFallbackAnalysis', () => {

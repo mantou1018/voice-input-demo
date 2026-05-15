@@ -235,6 +235,10 @@ function cleanPositionValue(input: string) {
     .replace(/(岗位|职位|工作|岗)$/u, '');
 }
 
+function isNumericFragment(value: string) {
+  return /^\d+$/u.test(value);
+}
+
 function extractPositionFromFragments(
   transcript: string,
   cityValue: string,
@@ -263,6 +267,7 @@ function extractPositionFromFragments(
     .map((token) => token.trim())
     .map((token) => cleanPositionValue(token))
     .filter(Boolean)
+    .filter((token) => !isNumericFragment(token))
     .filter((token) => token !== cityValue)
     .filter((token) => token !== nameValue)
     .filter((token) => token !== nameSourceText)
@@ -303,7 +308,7 @@ function extractPosition(
       .replace(/\s+/gu, '')
       .replace(/的/gu, '');
 
-    if (value) {
+    if (value && !isNumericFragment(value)) {
       return {
         value: value.endsWith('岗') || value.endsWith('职位') ? value : `${value}`,
         sourceText: match[1].trim() || null,

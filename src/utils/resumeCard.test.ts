@@ -58,6 +58,14 @@ describe('buildResumeInfoCard', () => {
     expect(analysis.extractionItems[3].value).toBe('13800138000');
   });
 
+  it('does not treat numeric fragments as a position', () => {
+    const analysis = buildResumeAnalysis('1356 110 北京');
+
+    expect(analysis.extractionItems[1].value).toBe('北京');
+    expect(analysis.extractionItems[2].detected).toBe(false);
+    expect(analysis.card.fields[4].value).not.toBe('1356');
+  });
+
   it('extracts age from sparse fragments without the 岁 suffix', () => {
     const analysis = buildResumeAnalysis('25 北京 保安');
 

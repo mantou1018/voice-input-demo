@@ -32,6 +32,10 @@ function cleanSourceText(value: unknown) {
   return text || null;
 }
 
+function isNumericFragment(value: string) {
+  return /^\d+$/u.test(value);
+}
+
 function limitJoinedValues(value: string, maxCount: number) {
   const parts = value
     .split(/[、,，\s]+/u)
@@ -53,13 +57,14 @@ function normalizeField(
   const rawValue = cleanString(payload?.value);
   const value = options.maxCount ? limitJoinedValues(rawValue, options.maxCount) : rawValue;
   const sourceText = cleanSourceText(payload?.sourceText);
+  const sanitizedValue = isNumericFragment(value) && fallback.id === 'position' ? '' : value;
   const detected = Boolean(payload?.detected && value && sourceText);
 
   return {
     ...fallback,
-    value: value || fallback.value,
-    sourceText: detected ? sourceText : null,
-    detected,
+    value: sanitizedValue || fallback.value,
+    sourceText: sanitizedValue && detected ? sourceText : null,
+    detected: Boolean(sanitizedValue && detected),
   };
 }
 
