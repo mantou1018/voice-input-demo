@@ -1,7 +1,7 @@
-import type { ResumeAnalysis, ResumeExtractionItem, ResumeInfoCard } from '../types/speech';
-import { normalizePositionFieldValue } from './positionSpeechCorrection';
-import { buildResumeAnalysis } from '../utils/resumeCard';
-import { normalizeText } from '../utils/text';
+import type { ResumeAnalysis, ResumeExtractionItem, ResumeInfoCard } from '../types/speech.js';
+import { normalizePositionFieldValue } from './positionSpeechCorrection.js';
+import { buildResumeAnalysis } from '../utils/resumeCard.js';
+import { normalizeText } from '../utils/text.js';
 
 export interface AgentField {
   value: string;

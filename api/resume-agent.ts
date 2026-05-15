@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { resolveResumeAnalysis } from '../src/lib/resumeAgentService';
+import { resolveResumeAnalysis } from '../src/lib/resumeAgentService.js';
 
 function readRequestBody(request: VercelRequest) {
   return new Promise<string>((resolve, reject) => {

@@ -1,7 +1,7 @@
-import type { ResumeAnalysis, ResumeInfoCard } from '../types/speech';
-import { CITY_ALIASES, POSITION_KEYWORDS } from '../data/lookupTables';
-import { COMMON_COMPOUND_SURNAMES, COMMON_SINGLE_SURNAMES } from '../data/nameTables';
-import { normalizeText } from './text';
+import type { ResumeAnalysis, ResumeInfoCard } from '../types/speech.js';
+import { CITY_ALIASES, POSITION_KEYWORDS } from '../data/lookupTables.js';
+import { COMMON_COMPOUND_SURNAMES, COMMON_SINGLE_SURNAMES } from '../data/nameTables.js';
+import { normalizeText } from './text.js';
 
 const DEFAULT_NAME = '张晓明';
 const DEFAULT_PHONE = '13566372453';

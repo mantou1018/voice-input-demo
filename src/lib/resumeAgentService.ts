@@ -2,8 +2,8 @@ import {
   buildAnalysisFromAgentFields,
   buildFallbackAnalysis,
   type AgentFieldPayload,
-} from './resumeAgentResponse';
-import { normalizePositionSpeechText } from './positionSpeechCorrection';
+} from './resumeAgentResponse.js';
+import { normalizePositionSpeechText } from './positionSpeechCorrection.js';
 
 const AGENT_SYSTEM_PROMPT = `
 你是招聘报名信息抽取助手。只从用户语音转写文本中抽取四个字段：年龄、手机号、意向城市、意向职位。

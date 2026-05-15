@@ -1,4 +1,4 @@
-import { POSITION_PICKER_CATEGORIES, findPositionPickerSelection } from '../data/positionPicker';
+import { POSITION_PICKER_CATEGORIES, findPositionPickerSelection } from '../data/positionPicker.js';
 
 const POSITION_SPEECH_ALIASES: Record<string, string> = {
   宝安: '保安',
