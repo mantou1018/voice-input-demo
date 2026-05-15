@@ -32,7 +32,7 @@ describe('shouldShowConfirmActions', () => {
         showExtracting: false,
         showReview: false,
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it('does not show confirm actions during supplement mode before new transcript is captured', () => {

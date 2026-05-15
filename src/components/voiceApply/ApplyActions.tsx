@@ -34,7 +34,7 @@ export function shouldShowConfirmActions({
 
   // When speech recognition fails, the user should still be able to submit after
   // filling all required fields manually.
-  return isConfirmEnabled;
+  return isConfirmEnabled && !showError;
 }
 
 export function VoiceWave() {

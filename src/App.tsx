@@ -395,6 +395,7 @@ export default function App() {
 
   function retryRecording() {
     resetChatMessages();
+    setIsSupplementing(false);
     void actions.startHoldToTalk({ preserveExisting: true });
   }
 
