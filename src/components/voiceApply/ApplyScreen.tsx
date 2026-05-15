@@ -83,9 +83,7 @@ export function ApplyScreen({
   const showListeningPrompt = usesInputShell && (!hasFormContent || isSupplementing);
   const headingTitle = shouldShowReviewHeading
     ? '请确认信息'
-    : hasFormContent
-      ? '请确认信息'
-      : '您可以这样对我说';
+    : '您可以这样对我说';
   const headingSubtitle = shouldShowReviewHeading
     ? '完善您的简历'
     : hasFormContent
