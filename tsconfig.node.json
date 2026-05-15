@@ -13,6 +13,7 @@
   "include": [
     "vite.config.ts",
     "src/lib/positionSpeechCorrection.ts",
+    "src/lib/resumeAgentService.ts",
     "src/lib/resumeAgentResponse.ts",
     "src/types/speech.ts",
     "src/utils/resumeCard.ts",
