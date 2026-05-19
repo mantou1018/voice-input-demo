@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "voice-input-demo",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-05-17",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+  "vars": {
+    "AI_API_BASE_URL": "https://api.deepseek.com",
+    "AI_MODEL": "deepseek-v4-flash"
+  }
+}

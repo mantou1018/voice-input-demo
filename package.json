@@ -8,6 +8,8 @@
     "dev:phone": "vite --host 0.0.0.0 --port 5173",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
+    "cf:build": "npm run build",
+    "cf:deploy": "npm run build && wrangler deploy",
     "phone:qr": "node scripts/phone-qr.mjs",
     "test": "vitest run"
   },
@@ -25,6 +27,7 @@
     "typescript": "^5.6.3",
     "vercel": "^53.1.1",
     "vite": "^5.4.10",
-    "vitest": "^2.1.3"
+    "vitest": "^2.1.3",
+    "wrangler": "^4.86.0"
   }
 }

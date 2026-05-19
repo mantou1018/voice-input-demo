@@ -20,6 +20,8 @@
     "src/utils/text.ts",
     "src/data/lookupTables.ts",
     "src/data/nameTables.ts",
-    "src/data/positionPicker.ts"
+    "src/data/positionPicker.ts",
+    "worker/index.ts",
+    "worker/resume-agent-handler.ts"
   ]
 }
