@@ -396,7 +396,17 @@ export default function App() {
   function retryRecording() {
     resetChatMessages();
     setIsSupplementing(false);
-    void actions.startHoldToTalk({ preserveExisting: true });
+    setEditingField(null);
+    setManualEdits({ age: null, city: null, phone: null, position: null });
+    setLatestCityValue('');
+    setLatestPositionValue('');
+    lastDetectedCityRef.current = '';
+    lastDetectedPositionRef.current = '';
+    setCityPickerState(resolveCityPickerState(''));
+    setSelectedAge('');
+    setPhoneInputValue('');
+    setPositionPickerState(resolvePositionPickerState(''));
+    void actions.startHoldToTalk();
   }
 
   function startSupplementFlow() {

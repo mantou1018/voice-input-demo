@@ -81,6 +81,7 @@ export function ApplyScreen({
     positionText.trim().length > 0;
   const shouldShowReviewHeading = showReview || (hasFormContent && !isSupplementing && !isRecordingMode && !showExtracting);
   const showListeningPrompt = usesInputShell && (!hasFormContent || isSupplementing);
+  const shouldShowRecordingBubble = isRecordingMode && hasTranscriptText;
   const headingTitle = shouldShowReviewHeading
     ? '请确认信息'
     : '您可以这样对我说';
@@ -142,24 +143,20 @@ export function ApplyScreen({
         />
 
         <div className={`flex min-h-0 flex-1 flex-col ${usesInputShell ? 'mt-[36px] justify-end' : 'mt-[34px]'}`}>
-          {showExtracting ? null : showListeningPrompt ? (
+          {showExtracting ? null : shouldShowRecordingBubble ? (
+            <div className="flex min-h-0 shrink items-end justify-center pb-[112px]">
+              <RecordingSpeechBubble text={transcriptText} />
+            </div>
+          ) : showListeningPrompt ? (
             <div
-              className={`flex min-h-0 shrink items-end justify-center ${
-                isRecordingMode && hasTranscriptText
-                  ? 'pb-[112px]'
-                  : 'pb-[130px]'
-              }`}
+              className="flex min-h-0 shrink items-end justify-center pb-[130px]"
             >
-              {isRecordingMode && hasTranscriptText ? (
-                <RecordingSpeechBubble text={transcriptText} />
-              ) : (
               <ListeningPrompt />
-              )}
             </div>
           ) : (
-            <div className="-ml-[56px] relative h-[270px] w-[414px] shrink-0 overflow-hidden">
+            <div className="-ml-[56px] relative h-[270px] w-[414px] shrink-0 overflow-hidden pt-[18px]">
               <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[8px] bg-[linear-gradient(180deg,#f1f4f6_0%,#f1f4f6_49.615%,rgba(241,244,246,0)_100%)]" />
-              <div className="flex h-full flex-col justify-end pb-[74px]">
+              <div className="flex h-full flex-col">
                 <ChatMessageList chatMessages={chatMessages} horizontalPadding={19} />
               </div>
             </div>

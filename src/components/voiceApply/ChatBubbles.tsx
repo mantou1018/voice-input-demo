@@ -3,6 +3,8 @@ import listeningStarSvg from '../../assets/listening-star.svg';
 import type { ChatMessage } from '../../utils/chatMessages';
 import { RECOGNIZING_CHAT_TEXT } from '../../utils/resumeAssistantPrompts';
 
+const REVIEW_SUCCESS_TEXT = '识别成功，请确认您的报名信息。如需修改，您可点击上方横线手动填写或语音补充';
+
 export function ListeningPrompt({ text = '请说，我在听' }: { text?: string }) {
   return (
     <div className="flex items-center justify-center gap-[2px]">
@@ -42,7 +44,7 @@ export function RecordingSpeechBubble({ text }: { text: string }) {
 function AssistantBubble({ children }: { children: ReactNode }) {
   return (
     <div className="flex w-full items-start">
-      <div className="w-full max-w-[376px] rounded-bl-[12px] rounded-br-[12px] rounded-tl-[12px] rounded-tr-[12px] bg-[#ffffff] px-[16px] py-[10px] shadow-[0_0_10px_rgba(49,68,82,0.05)]">
+      <div className="w-full max-w-[376px] rounded-bl-[12px] rounded-br-[12px] rounded-tl-[2px] rounded-tr-[12px] bg-[#ffffff] px-[16px] py-[10px]">
         <div className="text-[17px] leading-[1.6] text-[#222222]">{children}</div>
       </div>
     </div>
@@ -101,6 +103,15 @@ export function ChatMessageList({
           {message.role === 'assistant' ? (
             message.text === RECOGNIZING_CHAT_TEXT ? (
               <AssistantStatusBubble text="正在识别您的信息" />
+            ) : message.text === REVIEW_SUCCESS_TEXT ? (
+              <AssistantBubble>
+                <div className="whitespace-pre-line">
+                  识别成功，请确认您的报名信息。如需修改，您可
+                  <span className="font-medium">点击上方横线手动填写</span>
+                  或
+                  <span className="font-medium">语音补充</span>
+                </div>
+              </AssistantBubble>
             ) : (
             <AssistantBubble>
               <div className="whitespace-pre-line">{message.text}</div>

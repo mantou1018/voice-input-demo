@@ -38,7 +38,7 @@ function createEmptyTranscriptError(): SpeechRecognizerError {
 }
 
 const STOP_GRACE_PERIOD_MS = 380;
-const AUTO_SEND_SILENCE_MS = 4000;
+const AUTO_SEND_SILENCE_MS = 3000;
 
 function mergeResumeAnalysis(previous: ResumeAnalysis, next: ResumeAnalysis): ResumeAnalysis {
   const previousItems = new Map(previous.extractionItems.map((item) => [item.id, item]));
