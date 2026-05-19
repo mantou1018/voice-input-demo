@@ -80,7 +80,7 @@ export function ApplyScreen({
     cityText.trim().length > 0 ||
     positionText.trim().length > 0;
   const shouldShowReviewHeading = showReview || (hasFormContent && !isSupplementing && !isRecordingMode && !showExtracting);
-  const showListeningPrompt = usesInputShell && (!hasFormContent || isSupplementing);
+  const showListeningPrompt = usesInputShell && !showError && (!hasFormContent || isSupplementing);
   const shouldShowRecordingBubble = isRecordingMode && hasTranscriptText;
   const headingTitle = shouldShowReviewHeading
     ? '请确认信息'

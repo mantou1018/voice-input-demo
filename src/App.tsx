@@ -397,16 +397,11 @@ export default function App() {
     resetChatMessages();
     setIsSupplementing(false);
     setEditingField(null);
-    setManualEdits({ age: null, city: null, phone: null, position: null });
-    setLatestCityValue('');
-    setLatestPositionValue('');
-    lastDetectedCityRef.current = '';
-    lastDetectedPositionRef.current = '';
-    setCityPickerState(resolveCityPickerState(''));
-    setSelectedAge('');
-    setPhoneInputValue('');
-    setPositionPickerState(resolvePositionPickerState(''));
-    void actions.startHoldToTalk();
+    setCityPickerState(resolveCityPickerState(cityText));
+    setSelectedAge(normalizeAgeValue(ageText));
+    setPhoneInputValue(phoneText);
+    setPositionPickerState(resolvePositionPickerState(positionText));
+    void actions.startHoldToTalk({ preserveExisting: true });
   }
 
   function startSupplementFlow() {

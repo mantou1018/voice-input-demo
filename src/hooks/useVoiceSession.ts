@@ -39,6 +39,7 @@ function createEmptyTranscriptError(): SpeechRecognizerError {
 
 const STOP_GRACE_PERIOD_MS = 380;
 const AUTO_SEND_SILENCE_MS = 3000;
+const NO_SPEECH_TIMEOUT_MS = 6000;
 
 function mergeResumeAnalysis(previous: ResumeAnalysis, next: ResumeAnalysis): ResumeAnalysis {
   const previousItems = new Map(previous.extractionItems.map((item) => [item.id, item]));
@@ -71,6 +72,7 @@ export function useVoiceSession() {
   const successToastTimeoutRef = useRef<number | null>(null);
   const stopGraceTimeoutRef = useRef<number | null>(null);
   const autoSendTimeoutRef = useRef<number | null>(null);
+  const noSpeechTimeoutRef = useRef<number | null>(null);
 
   const [phase, setPhase] = useState<VoiceApplyPhase>('job');
   const [recordingState, setRecordingState] = useState<RecordingSessionState>('idle');
@@ -97,6 +99,7 @@ export function useVoiceSession() {
       clearPendingTransitions();
       clearStopGraceTimeout();
       clearAutoSendTimeout();
+      clearNoSpeechTimeout();
       if (successToastTimeoutRef.current) {
         window.clearTimeout(successToastTimeoutRef.current);
       }
@@ -132,9 +135,19 @@ export function useVoiceSession() {
 
   useEffect(() => {
     clearAutoSendTimeout();
+    clearNoSpeechTimeout();
 
     if (phase !== 'recording' || recordingState !== 'recording') {
       return;
+    }
+
+    if (!transcriptText.trim()) {
+      noSpeechTimeoutRef.current = window.setTimeout(() => {
+        noSpeechTimeoutRef.current = null;
+        finishHoldToTalk(false);
+      }, NO_SPEECH_TIMEOUT_MS);
+
+      return () => clearNoSpeechTimeout();
     }
 
     autoSendTimeoutRef.current = window.setTimeout(() => {
@@ -142,7 +155,10 @@ export function useVoiceSession() {
       finishHoldToTalk(false);
     }, AUTO_SEND_SILENCE_MS);
 
-    return () => clearAutoSendTimeout();
+    return () => {
+      clearAutoSendTimeout();
+      clearNoSpeechTimeout();
+    };
   }, [phase, recordingState, transcriptText]);
 
   useEffect(() => {
@@ -170,6 +186,7 @@ export function useVoiceSession() {
           : nextError;
 
       clearStopGraceTimeout();
+      clearNoSpeechTimeout();
       finalizeOnStopRef.current = false;
       setError(resolvedError);
       setRecordingState('error');
@@ -245,6 +262,15 @@ export function useVoiceSession() {
     autoSendTimeoutRef.current = null;
   }
 
+  function clearNoSpeechTimeout() {
+    if (!noSpeechTimeoutRef.current) {
+      return;
+    }
+
+    window.clearTimeout(noSpeechTimeoutRef.current);
+    noSpeechTimeoutRef.current = null;
+  }
+
   function scheduleTransition(delayMs: number, callback: () => void) {
     const timeoutId = window.setTimeout(callback, delayMs);
     pendingTimeoutsRef.current.push(timeoutId);
@@ -277,6 +303,7 @@ export function useVoiceSession() {
     finalizeOnStopRef.current = false;
     clearStopGraceTimeout();
     clearAutoSendTimeout();
+    clearNoSpeechTimeout();
     adapterRef.current.abort();
     resetTranscript();
     resetSubmittedTranscript();
@@ -394,6 +421,7 @@ export function useVoiceSession() {
     finalizeOnStopRef.current = true;
     setRecordingState('recognizing');
     clearAutoSendTimeout();
+    clearNoSpeechTimeout();
     clearStopGraceTimeout();
     stopGraceTimeoutRef.current = window.setTimeout(() => {
       stopGraceTimeoutRef.current = null;
@@ -420,6 +448,7 @@ export function useVoiceSession() {
     setPhase('extracting');
     setActiveExtractionIndex(-1);
     clearAutoSendTimeout();
+    clearNoSpeechTimeout();
     clearPendingTransitions();
 
     let nextAnalysis: ResumeAnalysis;
@@ -483,6 +512,7 @@ export function useVoiceSession() {
 
     clearStopGraceTimeout();
     clearAutoSendTimeout();
+    clearNoSpeechTimeout();
     setHasApplied(true);
     setShowSuccessToast(true);
     setPhase('job');
