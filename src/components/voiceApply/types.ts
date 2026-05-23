@@ -44,6 +44,7 @@ export type ApplyScreenProps = {
   cityText: string;
   pendingUserMessage: string;
   transcriptText: string;
+  forceListeningPrompt: boolean;
   isConfirmEnabled: boolean;
   isActive: boolean;
   isDoneEnabled: boolean;

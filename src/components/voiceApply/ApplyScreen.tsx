@@ -23,6 +23,7 @@ export function ApplyScreen({
   isActive,
   isDoneEnabled,
   isSupplementing,
+  forceListeningPrompt,
   mode,
   onCancelSupplement,
   onClose,
@@ -80,7 +81,12 @@ export function ApplyScreen({
     cityText.trim().length > 0 ||
     positionText.trim().length > 0;
   const shouldShowReviewHeading = showReview || (hasFormContent && !isSupplementing && !isRecordingMode && !showExtracting);
-  const showListeningPrompt = usesInputShell && !showError && (!hasFormContent || isSupplementing);
+  const shouldForceListeningPrompt = forceListeningPrompt && !showError && !hasTranscriptText;
+  const showListeningPrompt =
+    usesInputShell &&
+    !showError &&
+    !hasTranscriptText &&
+    (shouldForceListeningPrompt || isRecordingMode || !hasFormContent || isSupplementing);
   const shouldShowRecordingBubble = isRecordingMode && hasTranscriptText;
   const headingTitle = shouldShowReviewHeading
     ? '请确认信息'
@@ -143,7 +149,11 @@ export function ApplyScreen({
         />
 
         <div className={`flex min-h-0 flex-1 flex-col ${usesInputShell ? 'mt-[36px] justify-end' : 'mt-[34px]'}`}>
-          {showExtracting ? null : shouldShowRecordingBubble ? (
+          {shouldForceListeningPrompt ? (
+            <div className="flex min-h-0 shrink items-end justify-center pb-[130px]">
+              <ListeningPrompt />
+            </div>
+          ) : showExtracting ? null : shouldShowRecordingBubble ? (
             <div className="flex min-h-0 shrink items-end justify-center pb-[112px]">
               <RecordingSpeechBubble text={transcriptText} />
             </div>

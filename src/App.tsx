@@ -131,6 +131,7 @@ export default function App() {
     resolvePositionPickerState(''),
   );
   const [isSupplementing, setIsSupplementing] = useState(false);
+  const [forceListeningPrompt, setForceListeningPrompt] = useState(false);
   const [cityPickerToast, setCityPickerToast] = useState<string | null>(null);
   const [positionPickerToast, setPositionPickerToast] = useState<string | null>(null);
   const chatTimeoutRef = useRef<number | null>(null);
@@ -343,6 +344,21 @@ export default function App() {
     }
   }, [isSupplementing, overlayMode]);
 
+  useEffect(() => {
+    if (!forceListeningPrompt) {
+      return;
+    }
+
+    if (
+      transcriptText.trim().length > 0 ||
+      overlayMode === 'extracting' ||
+      overlayMode === 'review' ||
+      overlayMode === 'error'
+    ) {
+      setForceListeningPrompt(false);
+    }
+  }, [forceListeningPrompt, overlayMode, transcriptText]);
+
   function startApplyFlow() {
     setOverlayVisible(true);
     setManualEdits({ age: null, city: null, phone: null, position: null });
@@ -351,6 +367,7 @@ export default function App() {
     lastDetectedCityRef.current = '';
     lastDetectedPositionRef.current = '';
     setIsSupplementing(false);
+    setForceListeningPrompt(false);
     setEditingField(null);
     setCityPickerState(resolveCityPickerState(''));
     setSelectedAge('');
@@ -376,6 +393,7 @@ export default function App() {
     actions.closeOverlay();
     setOverlayActive(false);
     setIsSupplementing(false);
+    setForceListeningPrompt(false);
     setEditingField(null);
     window.setTimeout(() => {
       setOverlayVisible(false);
@@ -396,6 +414,7 @@ export default function App() {
   function retryRecording() {
     resetChatMessages();
     setIsSupplementing(false);
+    setForceListeningPrompt(true);
     setEditingField(null);
     setCityPickerState(resolveCityPickerState(cityText));
     setSelectedAge(normalizeAgeValue(ageText));
@@ -406,6 +425,7 @@ export default function App() {
 
   function startSupplementFlow() {
     setIsSupplementing(true);
+    setForceListeningPrompt(false);
     resetChatMessages();
     void actions.startHoldToTalk({ preserveExisting: true });
   }
@@ -413,12 +433,14 @@ export default function App() {
   function cancelSupplementFlow() {
     actions.finishHoldToTalk(true);
     setIsSupplementing(false);
+    setForceListeningPrompt(false);
     resetChatMessages();
     pushReviewPrompt();
   }
 
   function finishRecording() {
     setIsSupplementing(false);
+    setForceListeningPrompt(false);
     actions.finishHoldToTalk(false);
   }
 
@@ -452,6 +474,7 @@ export default function App() {
     setOverlayVisible(false);
     setOverlayActive(false);
     setIsSupplementing(false);
+    setForceListeningPrompt(false);
     setEditingField(null);
     setChatMessages([]);
     setManualEdits({ age: null, city: null, phone: null, position: null });
@@ -668,6 +691,7 @@ export default function App() {
           cityPickerState={cityPickerState}
           cityText={resolvedCityText}
           editingField={editingField}
+          forceListeningPrompt={forceListeningPrompt}
           isActive={resolvedOverlayActive}
           isConfirmEnabled={resolvedIsConfirmEnabled}
           isDoneEnabled={resolvedIsDoneEnabled}

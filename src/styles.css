@@ -47,6 +47,25 @@
     transform-origin: center;
   }
 
+  .listening-mic-core {
+    transform-origin: center;
+    box-shadow: 0 2px 8px rgba(38, 216, 210, 0.22);
+  }
+
+  .listening-mic-ripple {
+    transform-origin: center;
+    animation: listening-mic-ripple 1.9s ease-out infinite;
+  }
+
+  .listening-mic-ripple--back {
+    background: rgba(69, 239, 210, 0.22);
+    animation-delay: 0.18s;
+  }
+
+  .listening-mic-ripple--front {
+    background: rgba(69, 239, 210, 0.3);
+  }
+
   .overlay-bg {
     opacity: 0;
     transform: scale(1.015);
@@ -152,6 +171,29 @@
   }
 }
 
+@keyframes listening-mic-ripple {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+
+  18% {
+    opacity: 0.42;
+    transform: scale(0.86);
+  }
+
+  58% {
+    opacity: 0.18;
+    transform: scale(1.08);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.24);
+  }
+}
+
 @keyframes wave-bar {
   0%,
   100% {
@@ -187,6 +229,16 @@
   100% {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes spinning-icon {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
   }
 }
 
