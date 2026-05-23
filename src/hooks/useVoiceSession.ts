@@ -387,6 +387,7 @@ export function useVoiceSession() {
     finalizeOnStopRef.current = false;
     clearStopGraceTimeout();
     clearAutoSendTimeout();
+    clearNoSpeechTimeout();
     adapterRef.current.abort();
     resetTranscript();
     resetSubmittedTranscript();

@@ -5,6 +5,7 @@ import type { ApplyMode } from './types';
 type ApplyActionsProps = {
   mode: ApplyMode;
   hasTranscriptText?: boolean;
+  hasFormContent?: boolean;
   isConfirmEnabled: boolean;
   isDoneEnabled: boolean;
   isSupplementing?: boolean;
@@ -82,6 +83,7 @@ function ReviewMicIcon() {
 export function ApplyActions({
   mode,
   hasTranscriptText = false,
+  hasFormContent = false,
   isConfirmEnabled,
   isDoneEnabled,
   isSupplementing = false,
@@ -98,31 +100,12 @@ export function ApplyActions({
   const isRecordingMode = mode === 'recording';
   const isErrorMode = mode === 'error';
   const isExtractingMode = mode === 'extracting';
-  const showConfirmActions = shouldShowConfirmActions({
+  const showConfirmActions = hasFormContent || shouldShowConfirmActions({
     isConfirmEnabled,
     showError,
     showExtracting,
     showReview,
   });
-  const primaryButtonLabel = showConfirmActions
-    ? '确认并报名'
-    : showExtracting
-      ? '识别中...'
-      : '我说完了';
-  const secondaryButtonLabel = showConfirmActions ? '补充信息' : '重说';
-  const primaryButtonDisabled = showConfirmActions
-    ? !isConfirmEnabled
-    : showExtracting
-      ? true
-      : isPrepareMode
-        ? true
-      : showError
-        ? true
-        : !isDoneEnabled;
-  const primaryButtonClick = showConfirmActions ? onConfirm : onDone;
-  const showPrimaryCheck = showConfirmActions
-    ? isConfirmEnabled
-    : !showExtracting && !showError && isDoneEnabled;
 
   if (isSupplementing) {
     return (
@@ -183,30 +166,7 @@ export function ApplyActions({
     );
   }
 
-  if (isPrepareMode) {
-    return (
-      <div className="shrink-0 pt-[6px]">
-        <div className="flex gap-4">
-          <button
-            className="h-[48px] w-[102px] shrink-0 rounded-[24px] bg-white px-[24px] py-[13.5px] text-[15px] font-medium leading-[21px] text-[#222222] shadow-[0_0_0_1px_rgba(255,255,255,0.88)]"
-            onClick={onRetry}
-            type="button"
-          >
-            继续补充
-          </button>
-          <button
-            className="h-[48px] min-w-0 flex-1 rounded-[24px] bg-[linear-gradient(347deg,#5ff1ff_18.034%,#31f8c6_78.723%)] px-[24px] py-[13.5px] text-[15px] font-medium leading-[21px] text-[#222222] shadow-[0_10px_24px_rgba(49,248,198,0.16)]"
-            onClick={onConfirm}
-            type="button"
-          >
-            确认并报名
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (isRecordingMode || isErrorMode) {
+  if (isPrepareMode || isRecordingMode || isErrorMode) {
     return (
       <div className="shrink-0 pt-[6px]">
         <div className="flex gap-4">
@@ -265,12 +225,12 @@ export function ApplyActions({
           onClick={onRetry}
           type="button"
         >
-          {secondaryButtonLabel}
+          重说
         </button>
         <button
           className="relative h-[48px] min-w-0 flex-[238] overflow-hidden rounded-[45px]"
-          disabled={primaryButtonDisabled}
-          onClick={primaryButtonClick}
+          disabled={!isDoneEnabled}
+          onClick={onDone}
           type="button"
         >
           <div className="absolute inset-0 bg-[linear-gradient(343.43deg,#defcff_14.824%,#dbfff6_91.068%)]" />
@@ -278,30 +238,12 @@ export function ApplyActions({
           <div className="absolute left-[186px] top-[-28px] h-[41px] w-[144px] rounded-[50%] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.7)_0%,rgba(255,255,255,0)_72%)]" />
           <div className="absolute inset-0 z-10 flex items-center justify-center">
             <div className="flex items-center gap-[6px]">
-              {showPrimaryCheck ? (
-                <img
-                  alt=""
-                  aria-hidden="true"
-                  className="h-[20px] w-[20px] shrink-0"
-                  src={doneCheckSvg}
-                />
-              ) : null}
               <span
                 className={`text-[15px] font-medium leading-[21px] ${
-                  showReview
-                    ? isConfirmEnabled
-                      ? 'text-[#222222]'
-                      : 'text-[#919191]'
-                    : showExtracting
-                      ? 'text-[#919191]'
-                      : showError
-                        ? 'text-[#919191]'
-                        : isDoneEnabled
-                          ? 'text-[#222222]'
-                          : 'text-[#919191]'
+                  isDoneEnabled ? 'text-[#222222]' : 'text-[#919191]'
                 }`}
               >
-                {primaryButtonLabel}
+                发送
               </span>
             </div>
           </div>

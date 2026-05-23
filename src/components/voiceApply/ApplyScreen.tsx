@@ -65,7 +65,6 @@ export function ApplyScreen({
   onToggleCity,
   positionPickerState,
 }: ApplyScreenProps) {
-  const isPrepareMode = mode === 'prepare';
   const isRecordingMode = mode === 'recording';
   const showExtracting = mode === 'extracting';
   const showReview = mode === 'review';
@@ -91,11 +90,7 @@ export function ApplyScreen({
   const headingTitle = shouldShowReviewHeading
     ? '请确认信息'
     : '您可以这样对我说';
-  const headingSubtitle = shouldShowReviewHeading
-    ? '完善您的简历'
-    : hasFormContent
-      ? '点击上方信息可手动修改'
-      : '完善您的简历';
+  const headingSubtitle = '完善您的简历';
   const isAgePickerOpen = editingField === 'age';
   const isCityPickerOpen = editingField === 'city';
   const isPhoneEditorOpen = editingField === 'phone';
@@ -191,6 +186,7 @@ export function ApplyScreen({
       >
         <ApplyActions
           hasTranscriptText={hasTranscriptText}
+          hasFormContent={hasFormContent}
           isSupplementing={isSupplementing}
           mode={mode}
           onCancelSupplement={onCancelSupplement}
