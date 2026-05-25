@@ -7,6 +7,7 @@
     "dev": "vite",
     "dev:phone": "vite --host 0.0.0.0 --port 5173",
     "build": "tsc -b && vite build",
+    "build:edgeone-preview": "node scripts/build-edgeone-preview.mjs",
     "preview": "vite preview",
     "cf:build": "npm run build",
     "cf:deploy": "npm run build && wrangler deploy",

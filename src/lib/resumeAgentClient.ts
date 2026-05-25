@@ -1,6 +1,12 @@
 import type { ResumeAnalysis } from '../types/speech';
+import { buildFallbackAnalysis } from './resumeAgentResponse';
+import { normalizePositionSpeechText } from './positionSpeechCorrection';
 
 export async function analyzeResumeWithAgent(transcript: string): Promise<ResumeAnalysis> {
+  if (import.meta.env.VITE_FORCE_LOCAL_RESUME_ANALYSIS === 'true') {
+    return buildFallbackAnalysis(normalizePositionSpeechText(transcript));
+  }
+
   const response = await fetch('/api/resume-agent', {
     method: 'POST',
     headers: {
